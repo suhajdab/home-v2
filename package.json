@@ -4,13 +4,16 @@
   "description": "",
   "main": "home.js",
   "scripts": {
+    "start": "node log.js & node api.js & node home.js & node rules.js & node time.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Balázs Suhajda",
   "license": "ISC",
   "dependencies": {
     "kue": "^0.8.9",
+    "lifx": "^0.2.1",
     "node-hue-api": "^0.2.3",
+    "redis": "^0.12.1",
     "suncalc": "~1.6.0"
   }
 }
