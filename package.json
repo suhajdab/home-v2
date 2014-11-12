@@ -1,0 +1,16 @@
+{
+  "name": "home-v2",
+  "version": "0.0.0",
+  "description": "",
+  "main": "home.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Balázs Suhajda",
+  "license": "ISC",
+  "dependencies": {
+    "kue": "^0.8.9",
+    "node-hue-api": "^0.2.3",
+    "suncalc": "~1.6.0"
+  }
+}
