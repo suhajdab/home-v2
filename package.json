@@ -4,7 +4,7 @@
   "description": "",
   "main": "home.js",
   "scripts": {
-    "start": "node log.js & node api.js & node home.js & node rules.js & node time.js",
+    "start": "node log.js & node api.js & node home.js & node rules.js & node astro.js & node alarm.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Balázs Suhajda",
