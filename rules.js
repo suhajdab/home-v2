@@ -9,11 +9,14 @@ var kue = require( 'kue' ),
 
 var rules = [
 	{
-		conditions: { source: 'sun-phase',        name: 'dawn' },
-		action:     { device: 'terrace lamp',	  state: { on: false, transitiontime: 5 } }
-	}, 	{
-		conditions: { source: 'sun-phase',        name: 'dusk'  },
-		action:     { device: 'terrace lamp',	  state: { on: true, ct: 450, bri: 200, transitiontime: 5 }   }
+		conditions: { source: 'astro',        name: 'dawn' },
+		action:     { device: 0,	  state: { on: false, transitiontime: 5 } }
+	}, {
+		conditions: { source: 'astro',        name: 'dusk'  },
+		action:     { device: 0,	  state: { on: true, ct: 450, bri: 200, transitiontime: 5 }   }
+	}, {
+		conditions: { source: 'alarm',        id: 1  },
+		action:     { device: 1,	  state: 'longFadeIn'   }
 	}
 ];
 
@@ -24,20 +27,22 @@ function rightConditions ( conditions, data ) {
 	return true;
 }
 
-function takeAction ( action, done ) {
+function takeAction ( action, done, priority ) {
+	console.log( 'takeAction', action );
 	events.create( 'action', {
 		state: action.state,
 		device: action.device,
 		title: 'Setting ' + action.device + ' to ' + action.state
-	} ).save();
+	} ).priority( priority ).save();
 	done();
 }
 
 function onEvent( event, done ) {
 	var data = event.data;
-	console.log( 'onEvent', data );
+
+	console.log( 'onEvent', event, data );
 	for ( var i = 0, rule; rule = rules[ i ]; i++ ) {
-		if ( rightConditions( rule.conditions, data )) takeAction( rule.action, done );
+		if ( rightConditions( rule.conditions, data )) takeAction( rule.action, done, data._priority );
 	}
 
 }
