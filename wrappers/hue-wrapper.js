@@ -1,5 +1,6 @@
 require('es6-promise').polyfill();
 
+var Colr = require('Colr');
 
 var hue = require("node-hue-api"),
 	HueApi = hue.HueApi,
@@ -41,13 +42,24 @@ console.log(lightState.create().white(500,100).transition(5));
 
  */
 
-// TODO: create lifx-like id API
-
-
-function discover () {
-	// get all lights
+/**
+ * Function take HSL and converts it to HSB in ranges for device
+ * @param hsl
+ * @returns {{hue: (hsv.h|*), saturation: number, brightness: number}}
+ */
+function convertToHSB( hsl ) {
+	var hsv = Colr.fromHslObject( hsl ).toHsvObject(),
+		HSB = {
+			hue: hsv.h,
+			saturation: hsv.s * 2.54,
+			brightness: hsv.v * 2.54
+		};
+	return HSB;
 }
 
+function convertToMireds ( kelvin ) {
+	var mireds = 1000000 / kelvin;
+}
 
 function getAllLights () {
 	return api.lights();
@@ -58,12 +70,47 @@ function getState ( id ) {
 }
 
 function setState ( id, state ) {
+	return api.setLightState( id , obj );
+}
 
-	return requestPromise( id + '/' + fn, args, 'put' );
+function on ( id ) {
+	return setState( id, { on: true } );
+}
+
+function off ( id ) {
+	return setState( id, { on: false } );
+}
+
+/**
+ * Set color of lamp with specified id
+ * @param {String} id
+ * @param {Object} hsl - HSL color
+ * @param {Number} hsl.h - hue ( 0 - 360 )
+ * @param {Number} hsl.s - saturation ( 0 - 100 )
+ * @param {Object} hsl.l - luminance ( 0 - 100 )
+ * @returns {Promise}
+ */
+function setColor ( id, hsl ) {
+	return setState( id, convertColor( hsl ));
+}
+
+/**
+ *	Set a white color on the lamp with specified id
+ *	Hue appears to take Mireds for white temperature ( = 100000/kelvin )
+ * @param {String} id
+ * @param {Number} kelvin - white temperature of lamp ( warm: 2500 - cool: 10000 )
+ * @param {Number} brightness - brightness of lamp ( 0 - 100 )
+ * @returns {Promise}
+ */
+function setWhite ( id, kelvin, brightness ) {
+	var colorArg = { ct: convertToMireds( kelvin ), bri: brightness * 2.54 };
+	return setState( id, colorArg );
 }
 
 module.exports = {
 	getAllLights: getAllLights(),
 	getState: getState,
-	setState: setState
+	setColor: setColor,
+	on: on,
+	off: off
 };
