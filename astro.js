@@ -24,11 +24,12 @@ function checkEvents( now ) {
 	}
 }
 
-function triggerEvent( data ) {
+function triggerEvent( phase ) {
 	events.create( 'event', {
-		name: data,
-		title: data + ' triggered',
-		source: 'astro'
+		id: 1,
+		state: phase,
+		title: phase + ' triggered',
+		source: 'sunlight-phase'
 	}).save();
 }
 

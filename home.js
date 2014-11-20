@@ -6,43 +6,39 @@ var kue = require('kue' ),
 
 // TODO: move devices & states to db
 
+var debug = true;
+
+function log () {
+	if ( debug ) console.log( arguments );
+}
+
+/*
+ var uuid = require('node-uuid');
+ Devices should get ids ...
+
+ // Generate a v1 (time-based) id
+ uuid.v1(); // -> '6c84fb90-12c4-11e1-840d-7b25c5ee775a'
+ */
+
 // tmp hue
-var hue = require("node-hue-api"),
-	HueApi = hue.HueApi,
-	lightState = hue.lightState;
 
 var displayResult = function(result) {
-	console.log(JSON.stringify(result, null, 2));
+	log(JSON.stringify(result, null, 2));
 };
 
 var displayError = function(err) {
-	console.error(err);
+	log( err );
 };
 
 
-//tmp lifx
-var lifx = require('lifx');
-var lx   = lifx.init();
-
-lifx.setDebug(false);
-
-var hostname = "10.0.1.2",
-	username = "2b107172103c8c9f1e4ee403426a87f",
-	api = new HueApi( hostname, username );
-
-
-function getBulbs() {
-	bulbs = lx.bulbs.map( function ( bulb ) {
-		return bulb.name;
-	});
-	console.log(bulbs);
-}
-//getBulbs();
+// tmp lifx require
+var lx = require('./wrappers/lifx-wrapper.js');
 
 var devices = [
 	{ prod: 'hue',  id: 1,  name: 'terrace lamp' },
-	{ prod: 'lifx',  id: 1, name: "Hubby's bedside" }
-//	{ prod: 'lifx',  id: 1, name: "Island lamp" }
+	{ prod: 'lifx',  id: 1, name: 'Hubby\'s bedside' },
+	{ prod: 'lifx',  id: 2, name: "Island lamp" },
+	{ prod: 'lifx',  id: 3, name: "Dining lamp" }
 ];
 
 

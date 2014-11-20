@@ -1,21 +1,23 @@
 /**
  * RULES
  */
-
+var objectAssign = require( 'object-assign' );
 var redis = require( 'redis' );
-
 var kue = require( 'kue' ),
 	events = kue.createQueue({prefix:'home'});
 
+// TODO: keep system state in db
+var state = {};
+
 var rules = [
 	{
-		conditions: { source: 'astro',        name: 'dawn' },
+		conditions: { source: 'sunlight-phase', name: 'dawn' },
 		action:     { device: 0,	  state: { on: false, transitiontime: 5 } }
 	}, {
-		conditions: { source: 'astro',        name: 'dusk'  },
+		conditions: { source: 'sunlight-phase', name: 'dusk'  },
 		action:     { device: 0,	  state: { on: true, ct: 450, bri: 200, transitiontime: 5 }   }
 	}, {
-		conditions: { source: 'alarm',        id: 1  },
+		conditions: { source: 'alarm',          id: 1  },
 		action:     { device: 1,	  state: 'longFadeIn'   }
 	}
 ];

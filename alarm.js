@@ -37,6 +37,7 @@ function triggerAlarm( data ) {
 	events.create( 'event', {
 		id: data.id,
 		name: data.name,
+		state: data.active,
 		title: data.name + ' triggered',
 		source: 'alarm'
 	}).priority('high' ).attempts(5).save();

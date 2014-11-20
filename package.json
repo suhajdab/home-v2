@@ -10,9 +10,13 @@
   "author": "Balázs Suhajda",
   "license": "ISC",
   "dependencies": {
+    "colr": "^1.2.1",
+    "es6-promise": "^2.0.0",
     "kue": "^0.8.9",
-    "lifx": "^0.2.1",
     "node-hue-api": "^0.2.3",
+    "node-rest-client": "^1.4.1",
+    "node-uuid": "^1.4.1",
+    "object-assign": "^1.0.0",
     "redis": "^0.12.1",
     "suncalc": "~1.6.0"
   }
