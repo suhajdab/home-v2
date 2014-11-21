@@ -1,15 +1,5 @@
-require( 'es6-promise' ).polyfill();
-
-//	color conversion library
-var Colr = require( 'Colr' );
-
-//	rest client to access lifx-http server
-var Client = require( 'node-rest-client' ).Client,
-	client = new Client();
-
-var baseUrl = 'http://localhost:56780/lights';
-
 /*
+ lifx-http API
  https://github.com/chendo/lifx-http
 
 
@@ -30,14 +20,35 @@ var baseUrl = 'http://localhost:56780/lights';
 
  */
 
-function requestPromise ( url, args, method ) {
+require( 'es6-promise' ).polyfill();
+
+//	color conversion library
+var Colr = require( 'Colr' );
+
+//	rest client to access lifx-http server
+var Client = require( 'node-rest-client' ).Client,
+	client = new Client();
+
+var baseUrl = 'http://localhost:56780/lights';
+
+
+/* PRIVATE */
+
+/**
+ * Request promise generator
+ * @param {String} url
+ * @param {Object} params - parameters to send to server
+ * @param {String} method - request method
+ * @returns {Promise}
+ */
+function requestPromise ( url, params, method ) {
 	'use strict';
 	url = baseUrl + ( url ? '/' + url : '' ) + '.json';
-	args = args || {};
+	params = params || {};
 	method = method || 'get';
 
 	return new Promise( function ( resolve, reject ) {
-		var req = client[method]( url, args, function( data, response ) {
+		var req = client[method]( url, params, function( data, response ) {
 			// parsed response body as js object
 			resolve( data );
 		});
@@ -48,6 +59,30 @@ function requestPromise ( url, args, method ) {
 	});
 }
 
+/**
+ * Function take HSL and converts it to HSB in ranges for device
+ * @param {Object} hsl - HSL color
+ * @param {Number} hsl.h - hue ( 0 - 360 )
+ * @param {Number} hsl.s - saturation ( 0 - 100 )
+ * @param {Object} hsl.l - luminance ( 0 - 100 )
+ * @returns {{hue: (hsv.h|*), saturation: number, brightness: number}}
+ */
+function convertToHSB( hsl ) {
+	var hsv = Colr.fromHslObject( hsl ).toHsvObject(),
+		HSB = {
+			hue: hsv.h, // 0 - 360 degrees => 0 - 65534
+			saturation: hsv.s / 100,
+			brightness: hsv.v / 100
+		};
+	return HSB;
+}
+
+function addDuration( stateObj, duration ) {
+	if ( duration !== undefined ) stateObj.duration = duration;
+}
+
+/* PUBLIC */
+
 function getAllLights () {
 	return requestPromise();
 }
@@ -56,20 +91,20 @@ function getState ( id ) {
 	return requestPromise( id );
 }
 
-function setState ( id, fn, args ) {
+function setState ( id, fn, stateObj, duration ) {
 	id = id || 'all';
 	fn = fn || 'color';
-	args = args || {};
+	addDuration( stateObj, duration );
 
-	return requestPromise( id + '/' + fn, args, 'put' );
+	return requestPromise( id + '/' + fn, stateObj, 'put' );
 }
 
 function on ( id ) {
-	return setState( id, 'on' );
+	return setState( id, 'on', duration );
 }
 
-function off ( id ) {
-	return setState( id, 'off' );
+function off ( id, duration ) {
+	return setState( id, 'off', duration );
 }
 
 /**
@@ -81,14 +116,8 @@ function off ( id ) {
  * @param {Object} hsl.l - luminance ( 0 - 100 )
  * @returns {Promise}
  */
-function setColor ( id, hsl ) {
-	var hsv = Colr.fromHslObject( hsl ).toHsvObject(),
-		colorArg = {
-			hue: hsv.h,
-			saturation: hsv.s / 100,
-			brightness: hsv.v / 100
-		};
-	return setState( id, 'color', colorArg );
+function setColor ( id, hsl, duration ) {
+	return setState( id, 'color', convertToHSB( hsl ), duration );
 }
 
 /**
@@ -98,20 +127,24 @@ function setColor ( id, hsl ) {
  * @param {Number} brightness - brightness of lamp ( 0 - 100 )
  * @returns {Promise}
  */
-function setWhite ( id, kelvin, brightness ) {
-	var colorArg = {
+function setWhite ( id, kelvin, brightness, duration ) {
+	// lifx requires hue, saturation even when setting white
+	var stateObj = {
 		hue: 0,
-		seturation: 1,
+		saturation: 1,
 		brightness: brightness || 1,
-		kelvin: kelvin || 3500
+		kelvin: kelvin
 	};
-	 return setState( id, 'color', colorArg );
+
+	return setState( id, 'color', stateObj );
 }
 
 module.exports = {
-	getAllLights: getAllLights(),
+	// should return all known devices
+	getDevices: getAllLights,
 	getState: getState,
 	setColor: setColor,
+	setWhite: setWhite,
 	on: on,
 	off: off
 };

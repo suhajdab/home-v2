@@ -1,6 +1,10 @@
 /**
  * HOME - bus
  */
+
+// TODO: abstract away DB layer
+// TODO: abstract away queuing mechanism
+
 var kue = require('kue' ),
 	events = kue.createQueue({prefix:'home'});
 
@@ -11,6 +15,9 @@ var debug = true;
 function log () {
 	if ( debug ) console.log( arguments );
 }
+// TODO: build up HomeKit like structure: Homes / Rooms / Accessories / Services + Zones ( optional groupings )
+
+
 
 /*
  var uuid = require('node-uuid');
@@ -19,8 +26,6 @@ function log () {
  // Generate a v1 (time-based) id
  uuid.v1(); // -> '6c84fb90-12c4-11e1-840d-7b25c5ee775a'
  */
-
-// tmp hue
 
 var displayResult = function(result) {
 	log(JSON.stringify(result, null, 2));
@@ -32,7 +37,6 @@ var displayError = function(err) {
 
 
 // tmp lifx require
-var lx = require('./wrappers/lifx-wrapper.js');
 
 var devices = [
 	{ prod: 'hue',  id: 1,  name: 'terrace lamp' },

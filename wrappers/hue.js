@@ -10,9 +10,9 @@ var hostname = "10.0.1.2",
 	username = "2b107172103c8c9f1e4ee403426a87f",
 	api = new HueApi( hostname, username );
 
-console.log(lightState.create().white(500,100).transition(5));
-
 /*
+	node-hue-api API
+
 	on() 			{ on: true }
  	off()			{ on: false }
 
@@ -42,24 +42,41 @@ console.log(lightState.create().white(500,100).transition(5));
 
  */
 
+
+/* PRIVATE */
+
 /**
- * Function take HSL and converts it to HSB in ranges for device
+ * Function take HSL and converts it to HSB specific for device
  * @param hsl
  * @returns {{hue: (hsv.h|*), saturation: number, brightness: number}}
  */
 function convertToHSB( hsl ) {
 	var hsv = Colr.fromHslObject( hsl ).toHsvObject(),
 		HSB = {
-			hue: hsv.h,
+			hue: hsv.h * 182.03888889, // 0 - 360 degrees => 0 - 65534
 			saturation: hsv.s * 2.54,
 			brightness: hsv.v * 2.54
 		};
 	return HSB;
 }
 
+// TODO: check what hue does with out of bounds values
+/**
+ *
+ * @param kelvin
+ * @returns {number}
+ */
 function convertToMireds ( kelvin ) {
 	var mireds = 1000000 / kelvin;
+	return mireds;
 }
+
+function addDuration( stateObj, duration ) {
+	if ( duration !== undefined ) stateObj.duration = duration;
+}
+
+
+/* PUBLIC */
 
 function getAllLights () {
 	return api.lights();
@@ -69,16 +86,19 @@ function getState ( id ) {
 	return api.lightStatus( id );
 }
 
-function setState ( id, state ) {
-	return api.setLightState( id , obj );
+function setState ( id, stateObj ) {
+	addDuration( stateObj, duration );
+	return api.setLightState( id , stateObj );
 }
 
-function on ( id ) {
-	return setState( id, { on: true } );
+function on ( id, duration ) {
+	var stateObj = { on: true };
+	return setState( id, stateObj, duration );
 }
 
-function off ( id ) {
-	return setState( id, { on: false } );
+function off ( id, duration ) {
+	var stateObj = { on: false };
+	return setState( id, stateObj, duration );
 }
 
 /**
@@ -90,27 +110,33 @@ function off ( id ) {
  * @param {Object} hsl.l - luminance ( 0 - 100 )
  * @returns {Promise}
  */
-function setColor ( id, hsl ) {
-	return setState( id, convertColor( hsl ));
+function setColor ( id, hsl, duration ) {
+	var stateObj = convertToHSB( hsl );
+	return setState( id, stateObj, duration );
 }
 
 /**
  *	Set a white color on the lamp with specified id
- *	Hue appears to take Mireds for white temperature ( = 100000/kelvin )
+ *	Hue appears takes Mireds for white temperature ( = 1000000 / kelvin )
  * @param {String} id
  * @param {Number} kelvin - white temperature of lamp ( warm: 2500 - cool: 10000 )
  * @param {Number} brightness - brightness of lamp ( 0 - 100 )
  * @returns {Promise}
  */
-function setWhite ( id, kelvin, brightness ) {
-	var colorArg = { ct: convertToMireds( kelvin ), bri: brightness * 2.54 };
-	return setState( id, colorArg );
+function setWhite ( id, kelvin, brightness, duration ) {
+	var stateObj = {
+		ct: convertToMireds( kelvin ),
+		bri: brightness * 2.54
+	};
+	return setState( id, stateObj, duration );
 }
 
 module.exports = {
-	getAllLights: getAllLights(),
+	// should return all known devices
+	getDevices: getAllLights,
 	getState: getState,
 	setColor: setColor,
+	setWhite: setWhite,
 	on: on,
 	off: off
 };
