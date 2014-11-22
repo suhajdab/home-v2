@@ -27,9 +27,8 @@ var Colr = require( 'Colr' );
 
 //	rest client to access lifx-http server
 var Client = require( 'node-rest-client' ).Client,
-	client = new Client();
-
-var baseUrl = 'http://localhost:56780/lights';
+	client = new Client(),
+	apiUrl = 'http://localhost:56780/lights';
 
 
 /* PRIVATE */
@@ -43,7 +42,7 @@ var baseUrl = 'http://localhost:56780/lights';
  */
 function requestPromise ( url, params, method ) {
 	'use strict';
-	url = baseUrl + ( url ? '/' + url : '' ) + '.json';
+	url = apiUrl + ( url ? '/' + url : '' ) + '.json';
 	params = params || {};
 	method = method || 'get';
 
@@ -83,14 +82,41 @@ function addDuration( stateObj, duration ) {
 
 /* PUBLIC */
 
+/**
+ * Return an array of known devices with id & label
+ * @returns {Promise}
+ */
 function getAllLights () {
-	return requestPromise();
+	return requestPromise().then( function ( result ) {
+		var newObj = result.map( function ( obj ) {
+			return {
+				nativeId: obj.id,
+				label: obj.label,
+				provider: 'lifx' // TODO: remove hardcoded provider
+			};
+		});
+
+		return Promise.resolve( newObj );
+	});
 }
 
+/**
+ *
+ * @param id
+ * @returns {Promise}
+ */
 function getState ( id ) {
 	return requestPromise( id );
 }
 
+/**
+ *
+ * @param id
+ * @param fn
+ * @param stateObj
+ * @param duration
+ * @returns {Promise}
+ */
 function setState ( id, fn, stateObj, duration ) {
 	id = id || 'all';
 	fn = fn || 'color';
@@ -99,10 +125,22 @@ function setState ( id, fn, stateObj, duration ) {
 	return requestPromise( id + '/' + fn, stateObj, 'put' );
 }
 
-function on ( id ) {
+/**
+ *
+ * @param id
+ * @param duration
+ * @returns {Promise}
+ */
+function on ( id, duration ) {
 	return setState( id, 'on', duration );
 }
 
+/**
+ *
+ * @param id
+ * @param duration
+ * @returns {Promise}
+ */
 function off ( id, duration ) {
 	return setState( id, 'off', duration );
 }
@@ -117,7 +155,7 @@ function off ( id, duration ) {
  * @returns {Promise}
  */
 function setColor ( id, hsl, duration ) {
-	return setState( id, 'color', convertToHSB( hsl ), duration );
+	return setState( id, 'color', null, convertToHSB( hsl ), duration );
 }
 
 /**
@@ -136,7 +174,7 @@ function setWhite ( id, kelvin, brightness, duration ) {
 		kelvin: kelvin
 	};
 
-	return setState( id, 'color', stateObj );
+	return setState( id, 'color', stateObj, duration );
 }
 
 module.exports = {
@@ -159,3 +197,5 @@ module.exports = {
 
 //test
 //setState( 'd073d5000cb1', 'toggle' ).then( console.log.bind( console ));
+
+//getAllLights().then( console.log.bind(console) );

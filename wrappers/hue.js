@@ -78,15 +78,28 @@ function addDuration( stateObj, duration ) {
 
 /* PUBLIC */
 
+/**
+ * Return an array of known devices with id & label
+ * @returns {Promise}
+ */
 function getAllLights () {
-	return api.lights();
+	return api.lights().then( function ( result ) {
+		var newObj = result.lights.map( function ( obj ) {
+			return {
+				nativeId: obj.id,
+				label: obj.name,
+				provider: 'hue' // TODO: remove hardcoded provider
+			};
+		});
+		return Promise.resolve( newObj );
+	});
 }
 
 function getState ( id ) {
 	return api.lightStatus( id );
 }
 
-function setState ( id, stateObj ) {
+function setState ( id, stateObj, duration ) {
 	addDuration( stateObj, duration );
 	return api.setLightState( id , stateObj );
 }
@@ -140,3 +153,5 @@ module.exports = {
 	on: on,
 	off: off
 };
+
+getAllLights().then( console.log.bind(console) );
