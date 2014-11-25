@@ -15,7 +15,11 @@ var devices = [],
 // TODO: discover new devices
 // TODO: create device tags=> room:kitchen / zone:garden / home:estate
 
-function parseTags ( tags ) {
+/**
+ * Read new room and zone tags, and store unique in db
+ * @param {Array} tags
+ */
+function importTags ( tags ) {
 	tags.forEach( function ( tag ) {
 		var arr = tag.split( ':' );
 		if ( arr.length < 2 ) return;
@@ -26,17 +30,46 @@ function parseTags ( tags ) {
 	db.set( 'zones', zones );
 }
 
+/**
+ * Find devices by room tag ( ex: room:bedroom )
+ * @param {String} room - room name
+ * @returns {Array|Boolean} - an array of found devices or false
+ */
 function findDevicesByRoom ( room ) {
-	if ( !~rooms.indexOf( room ) ) return;
+	console.log('by room', room)
+	if ( !~rooms.indexOf( room ) ) return false;
 
 	return devices.filter( function ( device ) {
-		return ~device.tags.indexOf('room:' + room);
+		return ~device.tags.indexOf( 'room:' + room );
 	});
 }
 
-function registerDevice ( device ) {
-	devices.push( device );
-	if ( device.tags ) parseTags ( device.tags );
+/**
+ * Find devices by zone tag ( ex: zone:garden )
+ * @param {String} zone - name of zone
+ * @returns {Array|Boolean} - an array of found devices or false
+ */
+function findDevicesByZone ( zone ) {
+	if ( !~zones.indexOf( zone ) ) return false;
+
+	return devices.filter( function ( device ) {
+		return ~device.tags.indexOf( 'zone:' + zone );
+	});
+}
+
+function findDeviceById( id ) {
+	for ( var i = 0, device; device = devices[ i ]; i++ ) {
+		if ( device.id === id ) return device;
+	}
+	return false;
+}
+
+function deviceSelector ( selector ) {
+	if ( ~selector.indexOf( ':') ) {
+		var tagValue = selector.split( ':' )[ 1 ];
+		return findDevicesByRoom( tagValue ) || findDevicesByZone( tagValue );
+	}
+	else return findDeviceById( selector );
 }
 
 function registerNewDevice ( device ) {
@@ -44,6 +77,7 @@ function registerNewDevice ( device ) {
 	device.id = uuid.v4();
 	devices.push( device );
 	db.set( 'devices', devices );
+	if ( device.tags ) importTags ( device.tags );
 }
 
 function filterOutRegisteredDevices ( device ) {
@@ -52,10 +86,6 @@ function filterOutRegisteredDevices ( device ) {
 	}
 
 	return true;
-}
-
-function registerDevices( deviceList ) {
-	deviceList.filter( filterOutRegisteredDevices ).forEach( registerDevice );
 }
 
 function registerNewDevices( deviceList ) {
@@ -82,8 +112,10 @@ function registerNewProvider ( provider ) {
 }
 
 function init () {
-	db.get( 'devices' ).then( registerDevices );
 	db.get( 'providers' ).then( registerProviders );
+	db.get( 'devices' ).then( function ( data ) { devices = data; } );
+	db.get( 'zones' ).then( function ( data ) { zones = data; } );
+	db.get( 'rooms' ).then( function ( data ) { rooms = data; } );
 
 	events.process( 'action', onAction );
 }
@@ -99,3 +131,7 @@ function onAction( event, done ) {
 
 
 init();
+
+setTimeout( function () {
+	console.log( deviceSelector('room:Kitchen'));
+},1000);
