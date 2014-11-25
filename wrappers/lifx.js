@@ -40,18 +40,21 @@ var Client = require( 'node-rest-client' ).Client,
  * @param {String} method - request method
  * @returns {Promise}
  */
-function requestPromise ( url, params, method ) {
+function requestPromise ( url, data, method ) {
 	'use strict';
+	var options = {
+		headers:{"Content-Type": "application/json"}
+	};
 	url = apiUrl + ( url ? '/' + url : '' ) + '.json';
-	params = params || {};
+	options.data = data || {};
 	method = method || 'get';
 
 	return new Promise( function ( resolve, reject ) {
-		var req = client[method]( url, params, function( data, response ) {
+		var req = client[method]( url, options, function( data, response ) {
 			// parsed response body as js object
 			resolve( data );
 		});
-
+		console.log( req )
 		req.on( 'error', function( err ){
 			reject( 'request error', err );
 		});
@@ -89,10 +92,13 @@ function addDuration( stateObj, duration ) {
 function getAllLights () {
 	return requestPromise().then( function ( result ) {
 		var newObj = result.map( function ( obj ) {
+			var tag = obj.tags ? 'room:' + obj.tags[0] : '';
 			return {
 				nativeId: obj.id,
 				label: obj.label,
-				provider: 'lifx' // TODO: remove hardcoded provider
+				type: 'light',
+				provider: 'lifx', // TODO: remove hardcoded provider,
+				tags: [tag]
 			};
 		});
 
@@ -121,7 +127,6 @@ function setState ( id, fn, stateObj, duration ) {
 	id = id || 'all';
 	fn = fn || 'color';
 	addDuration( stateObj, duration );
-
 	return requestPromise( id + '/' + fn, stateObj, 'put' );
 }
 
@@ -155,7 +160,7 @@ function off ( id, duration ) {
  * @returns {Promise}
  */
 function setColor ( id, hsl, duration ) {
-	return setState( id, 'color', null, convertToHSB( hsl ), duration );
+	return setState( id, 'color', convertToHSB( hsl ), duration );
 }
 
 /**
@@ -168,10 +173,10 @@ function setColor ( id, hsl, duration ) {
 function setWhite ( id, kelvin, brightness, duration ) {
 	// lifx requires hue, saturation even when setting white
 	var stateObj = {
-		hue: 0,
-		saturation: 1,
-		brightness: brightness || 1,
-		kelvin: kelvin
+		"hue": 0,
+		"saturation": 100,
+		"brightness": brightness || 100,
+		"kelvin": kelvin
 	};
 
 	return setState( id, 'color', stateObj, duration );
@@ -194,8 +199,8 @@ module.exports = {
 	island lamp : d073d5000cb1
  */
 
-
+// TODO: fix setWhite!
 //test
 //setState( 'd073d5000cb1', 'toggle' ).then( console.log.bind( console ));
-
+//setColor('d073d5000cb1', {h:280,s:100,l:50}, 5).then( console.log.bind(console) );
 //getAllLights().then( console.log.bind(console) );

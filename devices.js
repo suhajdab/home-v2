@@ -8,13 +8,35 @@ var db = require( './database-layer.js' );
 
 /* PRIVATE */
 var providers = {}; // should come from redis
-var devices = [];
+var devices = [],
+	rooms = [],
+	zones = [];
 
 // TODO: discover new devices
 // TODO: create device tags=> room:kitchen / zone:garden / home:estate
 
+function parseTags ( tags ) {
+	tags.forEach( function ( tag ) {
+		var arr = tag.split( ':' );
+		if ( arr.length < 2 ) return;
+		if ( arr[ 0 ] == 'room' && !~rooms.indexOf( arr[ 1 ] )) rooms.push( arr[ 1 ]);
+		if ( arr[ 0 ] == 'zone' && !~zones.indexOf( arr[ 1 ] )) zones.push( arr[ 1 ]);
+	});
+	db.set( 'rooms', rooms );
+	db.set( 'zones', zones );
+}
+
+function findDevicesByRoom ( room ) {
+	if ( !~rooms.indexOf( room ) ) return;
+
+	return devices.filter( function ( device ) {
+		return ~device.tags.indexOf('room:' + room);
+	});
+}
+
 function registerDevice ( device ) {
 	devices.push( device );
+	if ( device.tags ) parseTags ( device.tags );
 }
 
 function registerNewDevice ( device ) {

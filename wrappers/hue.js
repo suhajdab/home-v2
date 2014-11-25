@@ -1,14 +1,21 @@
-require('es6-promise').polyfill();
+require( 'es6-promise' ).polyfill();
 
-var Colr = require('Colr');
+var Colr = require( 'Colr' );
 
-var hue = require("node-hue-api"),
+var hue = require( 'node-hue-api' ),
 	HueApi = hue.HueApi,
 	lightState = hue.lightState;
 
 var hostname = "10.0.1.2",
 	username = "2b107172103c8c9f1e4ee403426a87f",
 	api = new HueApi( hostname, username );
+
+var deviceSignature = {
+	nativeId: '',
+	label: '',
+	provider: 'hue',
+	tags: []
+};
 
 /*
 	node-hue-api API
@@ -88,6 +95,7 @@ function getAllLights () {
 			return {
 				nativeId: obj.id,
 				label: obj.name,
+				type: light,
 				provider: 'hue' // TODO: remove hardcoded provider
 			};
 		});
