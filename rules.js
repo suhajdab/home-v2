@@ -2,25 +2,14 @@
  * RULES
  */
 var objectAssign = require( 'object-assign' );
-var redis = require( 'redis' );
+var db = require( './database-layer.js' );
 var kue = require( 'kue' ),
 	events = kue.createQueue({prefix:'home'});
 
-// TODO: keep system state in db
+// TODO: keep system state in db??
 var state = {};
 
-var rules = [
-	{
-		conditions: { source: 'sunlight-phase', name: 'dawn' },
-		action:     { device: 0,	  state: { on: false, transitiontime: 5 } }
-	}, {
-		conditions: { source: 'sunlight-phase', name: 'dusk'  },
-		action:     { device: 0,	  state: { on: true, ct: 450, bri: 200, transitiontime: 5 }   }
-	}, {
-		conditions: { source: 'alarm',          id: 1  },
-		action:     { device: 1,	  state: 'longFadeIn'   }
-	}
-];
+var rules = [];
 
 function rightConditions ( conditions, data ) {
 	for ( var key in conditions ) {
@@ -49,4 +38,10 @@ function onEvent( event, done ) {
 
 }
 
-events.process( 'event', onEvent );
+function init() {
+	events.process( 'event', onEvent );
+	db.get( 'rules' ).then( function ( data ) { rules = data; } ).then( console.log.bind(console));
+}
+
+
+init();
