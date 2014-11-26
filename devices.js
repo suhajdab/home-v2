@@ -111,13 +111,18 @@ function registerNewProvider ( provider ) {
 	db.set( 'providers', Object.keys( providers ));
 }
 
-function init () {
-	db.get( 'providers' ).then( registerProviders );
-	db.get( 'devices' ).then( function ( data ) { devices = data; } );
-	db.get( 'zones' ).then( function ( data ) { zones = data; } );
-	db.get( 'rooms' ).then( function ( data ) { rooms = data; } );
-
+function ready () {
+	console.log( 'device.js ready', devices );
 	events.process( 'action', onAction );
+}
+
+function init () {
+	Promise.all([
+		db.get( 'providers' ).then( registerProviders ),
+		db.get( 'devices' ).then( function ( data ) { devices = data; } ),
+		db.get( 'zones' ).then( function ( data ) { zones = data; } ),
+		db.get( 'rooms' ).then( function ( data ) { rooms = data; } )
+	]).then( ready );
 }
 
 
@@ -131,7 +136,3 @@ function onAction( event, done ) {
 
 
 init();
-
-setTimeout( function () {
-	console.log( deviceSelector('room:Kitchen'));
-},1000);
