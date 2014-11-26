@@ -54,9 +54,9 @@ var deviceSignature = {
 /* PRIVATE */
 
 /**
- * Function take HSL and converts it to HSB specific for device
+ * Function takes HSL and converts it to HSB specific for device
  * @param hsl
- * @returns {{hue: (hsv.h|*), saturation: number, brightness: number}}
+ * @returns {{hue: number, saturation: number, brightness: number}}
  */
 function convertToHSB( hsl ) {
 	var hsv = Colr.fromHslObject( hsl ).toHsvObject(),
@@ -87,7 +87,7 @@ function addDuration( stateObj, duration ) {
 /* PUBLIC */
 
 /**
- * Return an array of known devices with id & label
+ * Returns an array of known devices with id & label
  * @returns {Promise}
  */
 function getAllLights () {
@@ -129,7 +129,7 @@ function off ( id, duration ) {
  * @param {Object} hsl - HSL color
  * @param {Number} hsl.h - hue ( 0 - 360 )
  * @param {Number} hsl.s - saturation ( 0 - 100 )
- * @param {Object} hsl.l - luminance ( 0 - 100 )
+ * @param {Number} hsl.l - luminance ( 0 - 100 )
  * @returns {Promise}
  */
 function setColor ( id, hsl, duration ) {

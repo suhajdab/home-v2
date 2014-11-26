@@ -61,11 +61,11 @@ function requestPromise ( url, data, method ) {
 }
 
 /**
- * Function take HSL and converts it to HSB in ranges for device
+ * Function takes an HSL color and converts it to HSB in ranges for device
  * @param {Object} hsl - HSL color
  * @param {Number} hsl.h - hue ( 0 - 360 )
  * @param {Number} hsl.s - saturation ( 0 - 100 )
- * @param {Object} hsl.l - luminance ( 0 - 100 )
+ * @param {Number} hsl.l - luminance ( 0 - 100 )
  * @returns {{hue: (hsv.h|*), saturation: number, brightness: number}}
  */
 function convertToHSB( hsl ) {
@@ -85,7 +85,7 @@ function addDuration( stateObj, duration ) {
 /* PUBLIC */
 
 /**
- * Return an array of known devices with id & label
+ * Returns an array of known devices with id & label
  * @returns {Promise}
  */
 function getAllLights () {
@@ -155,7 +155,7 @@ function off ( id, duration ) {
  * @param {Object} hsl - HSL color
  * @param {Number} hsl.h - hue ( 0 - 360 )
  * @param {Number} hsl.s - saturation ( 0 - 100 )
- * @param {Object} hsl.l - luminance ( 0 - 100 )
+ * @param {Number} hsl.l - luminance ( 0 - 100 )
  * @returns {Promise}
  */
 function setColor ( id, hsl, duration ) {
