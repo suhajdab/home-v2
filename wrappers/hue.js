@@ -6,7 +6,7 @@ var hue = require( 'node-hue-api' ),
 	HueApi = hue.HueApi,
 	lightState = hue.lightState;
 
-var hostname = "10.0.1.2",
+var hostname = "10.0.1.3",
 	username = "2b107172103c8c9f1e4ee403426a87f",
 	api = new HueApi( hostname, username );
 
@@ -49,6 +49,7 @@ var deviceSignature = {
 
  */
 
+// TODO: discover hub automatically
 
 /* PRIVATE */
 
@@ -95,7 +96,7 @@ function getAllLights () {
 			return {
 				nativeId: obj.id,
 				label: obj.name,
-				type: light,
+				type: 'light',
 				provider: 'hue' // TODO: remove hardcoded provider
 			};
 		});
@@ -162,4 +163,4 @@ module.exports = {
 	off: off
 };
 
-getAllLights().then( console.log.bind(console) );
+//getAllLights().then( console.log.bind(console) );

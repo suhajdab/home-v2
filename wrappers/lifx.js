@@ -54,7 +54,6 @@ function requestPromise ( url, data, method ) {
 			// parsed response body as js object
 			resolve( data );
 		});
-		console.log( req )
 		req.on( 'error', function( err ){
 			reject( 'request error', err );
 		});
@@ -173,10 +172,10 @@ function setColor ( id, hsl, duration ) {
 function setWhite ( id, kelvin, brightness, duration ) {
 	// lifx requires hue, saturation even when setting white
 	var stateObj = {
-		"hue": 0,
-		"saturation": 100,
-		"brightness": brightness || 100,
-		"kelvin": kelvin
+		hue: 0,
+		saturation: 0,
+		brightness: brightness,
+		kelvin: kelvin
 	};
 
 	return setState( id, 'color', stateObj, duration );
@@ -199,8 +198,8 @@ module.exports = {
 	island lamp : d073d5000cb1
  */
 
-// TODO: fix setWhite!
 //test
 //setState( 'd073d5000cb1', 'toggle' ).then( console.log.bind( console ));
+//setWhite('d073d5000cb1', 3000, 100, 5).then( console.log.bind(console) );
 //setColor('d073d5000cb1', {h:280,s:100,l:50}, 5).then( console.log.bind(console) );
 //getAllLights().then( console.log.bind(console) );

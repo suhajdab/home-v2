@@ -2,6 +2,7 @@ require('es6-promise').polyfill();
 var redis = require( 'redis' ).createClient();
 
 function set ( key, value ) {
+	'use strict';
 	var json = JSON.stringify( value );
 
 	return new Promise( function ( resolve, reject ) {
@@ -17,6 +18,7 @@ function set ( key, value ) {
 }
 
 function get ( key ) {
+	'use strict';
 	return new Promise( function ( resolve, reject ) {
 		redis.get( key, function ( err, response ) {
 			if ( err ) {
