@@ -6,7 +6,7 @@ var hue = require( 'node-hue-api' ),
 	HueApi = hue.HueApi,
 	lightState = hue.lightState;
 
-var hostname = "10.0.1.3",
+var hostname = "10.0.1.2",
 	username = "2b107172103c8c9f1e4ee403426a87f",
 	api = new HueApi( hostname, username );
 
@@ -16,6 +16,8 @@ var deviceSignature = {
 	provider: 'hue',
 	tags: []
 };
+
+var deviceStates = {};
 
 /*
 	node-hue-api API
@@ -50,8 +52,47 @@ var deviceSignature = {
  */
 
 // TODO: discover hub automatically
+// using
+api.getFullState().then(function(data){
+	console.log(JSON.stringify(data, null, "\t"));
+}).catch(console.log.bind(console));
+
+
+/* UTILITY */
+
+// TODO: keep polling lights' state and publish changes, so UI can be updated following external changes
+/**
+ * Function to compare data received from lights state to old data
+ * @param {Object} oldData - data from previous state
+ * @param {Object} newData - data from current state
+ * @returns {boolean} - result of comparison
+ */
+function isStateChanged( oldData, newData ) {
+	var keys = [ 'lights' ],
+		oldFiltered = filterObject( oldData, keys ),
+		newFiltered = filterObject( newData, keys );
+	return JSON.stringify( oldFiltered ) !== JSON.stringify( newFiltered );
+}
+
+/**
+ * Function returns Object containing only those properties specified in keys array
+ * @param {Object} obj - Object to filter
+ * @param {Array} keys - Array of keys to filter by
+ * @returns {Object} - New object containing only specified properties
+ */
+function filterObject( obj, keys ) {
+	var newObj = {};
+	Object.keys( obj ).forEach( function ( key ) {
+		if ( ~keys.indexOf( key )) newObj[ key ] = obj[ key ];
+	});
+	return newObj;
+}
+
 
 /* PRIVATE */
+
+function getDeviceStates () {
+}
 
 /**
  * Function takes HSL and converts it to HSB specific for device
@@ -68,7 +109,7 @@ function convertToHSB( hsl ) {
 	return HSB;
 }
 
-// TODO: check what hue does with out of bounds values
+// TODO: check what hue does with out of bounds values OR just keep in range :)
 /**
  *
  * @param kelvin

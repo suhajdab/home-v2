@@ -199,7 +199,6 @@ module.exports = {
  */
 
 //test
-//setState( 'd073d5000cb1', 'toggle' ).then( console.log.bind( console ));
 //setWhite('d073d5000cb1', 3000, 100, 5).then( console.log.bind(console) );
-//setColor('d073d5000cb1', {h:280,s:100,l:50}, 5).then( console.log.bind(console) );
+setColor('d073d5000cb1', {h:280,s:100,l:50}, 5).then( console.log.bind(console) );
 //getAllLights().then( console.log.bind(console) );

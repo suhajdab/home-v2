@@ -102,7 +102,7 @@ function registerProviders ( providers ) {
 
 function registerProvider ( providerName ) {
 	if ( !!providers[ providerName ] ) return;
-	providers[ providerName ] = require( './wrappers/' + providerName + '.js' );
+	providers[ providerName ] = require( './providers/' + providerName + '.js' );
 	providers[ providerName ].getDevices().then( registerNewDevices ).catch( onRegistrationError );
 }
 
