@@ -4,15 +4,18 @@
   "description": "",
   "main": "home.js",
   "scripts": {
-    "start": "node log.js & node api.js & node home.js & node rules.js & node astro.js & node alarm.js",
+    "start": "node api.js & node home.js & node rules.js & node devices.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Balázs Suhajda",
   "license": "ISC",
   "dependencies": {
     "colr": "^1.2.1",
+    "cron": "^1.0.5",
     "es6-promise": "^2.0.0",
+    "forecast": "^0.2.1",
     "kue": "^0.8.9",
+    "netatmo": "^1.1.1",
     "node-hue-api": "^0.2.3",
     "node-rest-client": "^1.4.1",
     "node-uuid": "^1.4.1",
