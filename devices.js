@@ -13,7 +13,6 @@ var devices = [],
 	zones = [];
 
 // TODO: discover new devices
-// TODO: create device tags=> room:kitchen / zone:garden / home:estate
 
 /**
  * Read new room and zone tags, and store unique in db
@@ -30,30 +29,9 @@ function importTags ( tags ) {
 	db.set( 'zones', zones );
 }
 
-/**
- * Find devices by room tag ( ex: room:bedroom )
- * @param {String} room - room name
- * @returns {Array|Boolean} - an array of found devices or false
- */
-function findDevicesByRoom ( room ) {
-	console.log('by room', room)
-	if ( !~rooms.indexOf( room ) ) return false;
-
+function findDeviceByTag ( selector ) {
 	return devices.filter( function ( device ) {
-		return ~device.tags.indexOf( 'room:' + room );
-	});
-}
-
-/**
- * Find devices by zone tag ( ex: zone:garden )
- * @param {String} zone - name of zone
- * @returns {Array|Boolean} - an array of found devices or false
- */
-function findDevicesByZone ( zone ) {
-	if ( !~zones.indexOf( zone ) ) return false;
-
-	return devices.filter( function ( device ) {
-		return ~device.tags.indexOf( 'zone:' + zone );
+		return ~( device.tags || [] ).indexOf( selector );
 	});
 }
 
@@ -66,8 +44,7 @@ function findDeviceById( id ) {
 
 function deviceSelector ( selector ) {
 	if ( ~selector.indexOf( ':') ) {
-		var tagValue = selector.split( ':' )[ 1 ];
-		return findDevicesByRoom( tagValue ) || findDevicesByZone( tagValue );
+		return findDeviceByTag( selector );
 	}
 	else return findDeviceById( selector );
 }
@@ -112,7 +89,7 @@ function registerNewProvider ( provider ) {
 }
 
 function ready () {
-	console.log( 'device.js ready', devices );
+	//console.log( 'device.js ready', devices );
 	events.process( 'action', onAction );
 }
 

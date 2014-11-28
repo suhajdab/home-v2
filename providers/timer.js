@@ -95,7 +95,7 @@ function init () {
 
 /*
 create({
-	name: "Hubby's weekday sunrise",
+	name: "Hubby's weekday alarm",
 	cronTime: "00 30 06 *  * 1-5",
 	repeat: true,
 	active: true
