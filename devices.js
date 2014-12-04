@@ -14,6 +14,16 @@ var devices = [],
 
 // TODO: discover new devices
 
+/* TODO: add listeners to devices
+
+ events.create( 'event', {
+	 id    : this.id,
+	 name  : this.name,
+	 title : this.name + ' triggered',
+	 source: 'timer'
+ }).save();
+ */
+
 /**
  * Read new room and zone tags, and store unique in db
  * @param {Array} tags
@@ -30,14 +40,20 @@ function importTags ( tags ) {
 }
 
 function findDeviceByTag ( selector ) {
-	return devices.filter( function ( device ) {
+	var foundDevices = devices.filter( function ( device ) {
 		return ~( device.tags || [] ).indexOf( selector );
 	});
+
+	console.log( 'found device by tag ' + selector, foundDevices );
+	return foundDevices;
 }
 
 function findDeviceById( id ) {
 	for ( var i = 0, device; device = devices[ i ]; i++ ) {
-		if ( device.id === id ) return device;
+		if ( device.id === id ) {
+			console.log( 'found device by id ' + id, device );
+			return device;
+		}
 	}
 	return false;
 }
@@ -78,9 +94,15 @@ function registerProviders ( providers ) {
 }
 
 function registerProvider ( providerName ) {
+	console.log( 'registering provider: ' + providerName );
 	if ( !!providers[ providerName ] ) return;
 	providers[ providerName ] = require( './providers/' + providerName + '.js' );
-	providers[ providerName ].getDevices().then( registerNewDevices ).catch( onRegistrationError );
+	if ( providers[ providerName ].getDevices ) {
+		providers[ providerName ]
+			.getDevices()
+			.then( registerNewDevices )
+			.catch( onRegistrationError );
+	}
 }
 
 function registerNewProvider ( provider ) {
@@ -91,6 +113,15 @@ function registerNewProvider ( provider ) {
 function ready () {
 	//console.log( 'device.js ready', devices );
 	events.process( 'action', onAction );
+
+	//console.log( deviceSelector( 'room:Kitchen' ));
+	/*setTimeout( function () {
+		console.log( 'Turning on all devices tagged Kitchen' );
+		deviceSelector( 'room:Kitchen' ).forEach( function ( device ){
+			providers[ device.provider ]['on']( device.nativeId );
+			console.log( 'turning on', device)
+		});
+	}, 2000 );*/
 }
 
 function init () {
@@ -106,9 +137,10 @@ function init () {
 function onAction( event, done ) {
 	// TODO: untangle devices, tags and standardize statuses
 	var data = event.data;
-
-	console.log( 'onAction', event, data );
-
+	console.log( 'onAction', data );
+	var device = deviceSelector( data.deviceSelector );
+	providers[ device.provider ][data.service]( device.nativeId );
+	done();
 }
 
 
