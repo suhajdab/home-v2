@@ -10,7 +10,7 @@ var kue = require( 'kue' ),
 	events = kue.createQueue({ prefix: 'home' });
 
 
-var timers = [];
+var timers;
 
 /*
 	Using cronTime to define timers
@@ -38,38 +38,58 @@ var timers = [];
 	 job.start() & job.stop()
  */
 
+/**
+ * Function returns Object containing only those properties specified in keys array
+ * @param {Object} obj - Object to filter
+ * @param {Array} keys - Array of keys to filter by
+ * @returns {Object} - New object containing only specified properties
+ */
+function filterObject( obj, keys ) {
+	var newObj = {};
+	Object.keys( obj ).forEach( function ( key ) {
+		if ( ~keys.indexOf( key )) newObj[ key ] = obj[ key ];
+	});
+	return newObj;
+}
+
+function filterBeforeSave ( timers ) {
+	var keys = [ 'label', 'cronTime', 'repeat', 'active', 'id' ];
+	return timers.map( function ( timer ) {
+		return filterObject( timer, keys );
+	});
+}
 
 function triggerTimer () {
 	console.log( 'timer triggered', this );
 	events.create( 'event', {
-		id: this.id,
-		name: this.name,
-		title: this.name + ' triggered',
+		id    : this.id,
+		name  : this.name,
+		title : this.name + ' triggered',
 		source: 'timer'
 	}).priority( 'high' ).attempts( 5 ).save();
 
-	if ( !this.repeat ) deactivate( this );
+	if ( !this.repeat ) disable( this );
 }
 
 function save() {
-	return db.set( 'timers', timers );
+	return db.set( 'timers', filterBeforeSave( timers )).catch( console.error.bind( console ));// TODO: error logging
 }
 
 function create ( timer ) {
 	timer.id = uuid.v4();
-	timers.push ( timer );
-	// setup using cron has to be last as it has circular references and doesn't need to be saved to db
-	save().then( function () { setup( timer ); }); // TODO: curry?
+	timers.push( timer );
+	setup( timer );
+	save();
 	return timer.id
 }
 
 function setup ( timer ) {
-	if ( !timer.active ) return;
-	activate( timer );
+	if ( !timer.enabled ) return;
+	enable( timer );
 }
 
-function activate ( timer ) {
-	timer.active = true;
+function enable ( timer ) {
+	timer.enabled = true;
 	timer.cron = new CronJob({
 		cronTime: timer.cronTime,
 		onTick: triggerTimer.bind( timer ),
@@ -77,28 +97,31 @@ function activate ( timer ) {
 	});
 }
 
-function deactivate ( timer ) {
-	timer.active = false;
+function disable ( timer ) {
+	timer.enabled = false;
 	timer.cron.stop(); // is this even needed?
 	delete timer.cron;
 	save();
 }
 
 function ready ( timerData ) {
-	timers = timerData;
+	timers = timerData || [];
 	timers.forEach( setup );
+
+	create({
+		label: "Hubby's weekday alarm",
+	//	cronTime: "00 30 06 *  * 1-5",
+		cronTime: "00 48 08 *  * *",
+		repeat: true,
+		enabled: true
+	});
 }
 
 function init () {
 	db.get( 'timers' ).then( ready );
 }
 
-/*
-create({
-	name: "Hubby's weekday alarm",
-	cronTime: "00 30 06 *  * 1-5",
-	repeat: true,
-	active: true
-});
-*/
+
+
+
 init();
