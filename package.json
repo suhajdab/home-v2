@@ -26,6 +26,7 @@
 		"object-assign": "^1.0.0",
 		"redis": "^0.12.1",
 		"suncalc": "~1.6.0",
-		"wemore": "0.0.1"
+		"wemore": "0.0.1",
+		"verisure-api": "git://github.com/suhajdab/verisure-api.git#master"
 	}
 }
