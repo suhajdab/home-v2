@@ -51,16 +51,18 @@ var deviceStates = {};
 
  */
 
+// TODO: keep polling lights' state and publish changes, so UI can be updated following external changes
+// TODO: expose native scheduling api
 // TODO: discover hub automatically
-// using
-api.getFullState().then(function(data){
-	console.log(JSON.stringify(data, null, "\t"));
-}).catch(console.log.bind(console));
+
+//api.getFullState().then(function(data){
+//	console.log(JSON.stringify(data, null, "\t"));
+//}).catch(console.log.bind(console));
 
 
 /* UTILITY */
 
-// TODO: keep polling lights' state and publish changes, so UI can be updated following external changes
+
 /**
  * Function to compare data received from lights state to old data
  * @param {Object} oldData - data from previous state
@@ -132,12 +134,13 @@ function addDuration( stateObj, duration ) {
  * @returns {Promise}
  */
 function getAllLights () {
+	// TODO: error handling when no network, devices not found
 	return api.lights().then( function ( result ) {
 		var newObj = result.lights.map( function ( obj ) {
 			return {
 				nativeId: obj.id,
-				label: obj.name,
-				type: 'light',
+				label   : obj.name,
+				type    : 'light',
 				provider: 'hue' // TODO: remove hardcoded provider
 			};
 		});
@@ -197,11 +200,11 @@ function setWhite ( id, kelvin, brightness, duration ) {
 module.exports = {
 	// should return all known devices
 	getDevices: getAllLights,
-	getState: getState,
-	setColor: setColor,
-	setWhite: setWhite,
-	on: on,
-	off: off
+	getState  : getState,
+	setColor  : setColor,
+	setWhite  : setWhite,
+	on        : on,
+	off       : off
 };
 
 //getAllLights().then( console.log.bind(console) );
