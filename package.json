@@ -1,10 +1,10 @@
 {
 	"name": "home-v2",
-	"version": "0.0.0",
-	"description": "",
+	"version": "0.1.0",
+	"description": "home automation in node",
 	"main": "home.js",
 	"scripts": {
-		"start": "node api.js & node home.js & node rules.js & node devices.js",
+		"start": "node timer.js && node rules.js && node devices.js",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"repository": {
