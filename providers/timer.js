@@ -52,6 +52,11 @@ function filterObject( obj, keys ) {
 	return newObj;
 }
 
+/**
+ * Function removes circular references, keeping only required properties on timer objects
+ * @param {Array} timers - Array of timer objects
+ * @returns {Array}
+ */
 function filterBeforeSave ( timers ) {
 	var keys = [ 'label', 'cronTime', 'repeat', 'active', 'id' ];
 	return timers.map( function ( timer ) {
@@ -105,6 +110,7 @@ function disable ( timer ) {
 }
 
 function ready ( timerData ) {
+	console.log( 'timers ready. loaded ' + timerData.length + ' timers.' );
 	timers = timerData || [];
 	timers.forEach( setup );
 
@@ -121,7 +127,4 @@ function init () {
 	db.get( 'timers' ).then( ready );
 }
 
-
-
-
-init();
+module.exports.init = init;

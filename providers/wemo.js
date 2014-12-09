@@ -58,7 +58,7 @@ function off ( id ) {
 }
 
 function ready () {
-	console.log( 'wemo ready', devices );
+	console.log( 'wemo ready' );
 }
 
 function discover () {
@@ -79,11 +79,10 @@ function init() {
 	discover();
 }
 
-init();
-
 module.exports = {
 	// should return all known devices
 	getDevices: getDevices,
 	on        : on,
-	off       : off
+	off       : off,
+	init      : init
 };

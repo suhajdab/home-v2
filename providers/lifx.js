@@ -28,8 +28,24 @@ var Colr = require( 'Colr' );
 //	rest client to access lifx-http server
 var Client = require( 'node-rest-client' ).Client,
 	client = new Client(),
-	apiUrl = 'http://localhost:56780/lights';
+	apiUrl;
 
+var signature = {
+	provider: 'lifx',
+	type: 'lamp',
+	service: {
+		on: [
+			'newBulb',
+			'stateChange'
+		],
+		set: [
+			{ on: { params: ['id', 'duration'] } },
+			{ off: { params: ['id', 'duration'] } },
+			{ setColor: {}},
+			{ setWhite: {}}
+		]
+	}
+};
 
 /* PRIVATE */
 
@@ -181,6 +197,11 @@ function setWhite ( id, kelvin, brightness, duration ) {
 	return setState( id, 'color', stateObj, duration );
 }
 
+function init( globalSettings, providerSettings ) {
+	apiUrl = providerSettings.get( 'apiUrl' );
+	console.log( 'lifx ready. apiUrl: ' + apiUrl );
+}
+
 module.exports = {
 	// should return all known devices
 	getDevices: getAllLights,
@@ -188,7 +209,8 @@ module.exports = {
 	setColor: setColor,
 	setWhite: setWhite,
 	on: on,
-	off: off
+	off: off,
+	init: init
 };
 
 /*

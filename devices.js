@@ -4,6 +4,7 @@ var kue = require( 'kue' ),
 	events = kue.createQueue({prefix:'home'});
 
 var db = require( './database-layer.js' );
+var settings = require( './settings.js' );
 
 
 /* PRIVATE */
@@ -86,7 +87,7 @@ function registerNewDevices( deviceList ) {
 }
 
 function onRegistrationError ( err ) {
-	console.error( err ); // TODO: error logging
+	console.error( 'onRegistrationError', err ); // TODO: error logging
 }
 
 function registerProviders ( providers ) {
@@ -95,14 +96,21 @@ function registerProviders ( providers ) {
 
 function registerProvider ( providerName ) {
 	console.log( 'registering provider: ' + providerName );
-	if ( !!providers[ providerName ] ) return;
-	providers[ providerName ] = require( './providers/' + providerName + '.js' );
-	if ( providers[ providerName ].getDevices ) {
-		providers[ providerName ]
+	var currentProvider = providers[ providerName],
+		providerSettings = settings( providerName ),
+		globalSettings = settings( 'global' );
+
+	if ( currentProvider ) return;
+
+	currentProvider = require( './providers/' + providerName + '.js' );
+	currentProvider.init( globalSettings, providerSettings );
+	if ( currentProvider.getDevices ) {
+		currentProvider
 			.getDevices()
 			.then( registerNewDevices )
 			.catch( onRegistrationError );
 	}
+	providers[ providerName] = currentProvider;
 }
 
 function registerNewProvider ( provider ) {

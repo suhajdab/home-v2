@@ -5,11 +5,7 @@ var kue = require('kue' ),
 //  calculate sun phases based on day & loc
 var suncalc = require( 'suncalc' );
 
-// home sweet home
-var lat = 55.633701,
-	long = 13.505829;
-
-var jobs = [];
+var geolocation, jobs = [];
 
 
 
@@ -61,14 +57,22 @@ function generateCronJobs ( events ) {
  * Function sets off the generation of cron jobs taking the sun phase objects provided by suncalc
  */
 function setupCronJobs () {
-	var sunPhases = suncalc.getTimes( Date.now(), lat, long );
+	var sunPhases = suncalc.getTimes( Date.now(), geolocation.lat, geolocation.long );
 	generateCronJobs( sunPhases );
+}
+
+function ready () {
+	console.log( 'sunPhases ready.' );
+	setupCronJobs();
 }
 
 /**
  * Function sets up a repeating cron job to generate sun phase jobs each day, and does generation for current day
  */
-function init () {
+function init ( globalSettings, providerSettings ) {
+	console.log( arguments );
+	geolocation = globalSettings.get( 'geolocation' );
+
 	// cron job to regenerate sun phase crons every day
 	jobs.push( new CronJob({
 		cronTime: '00 00 00 * * *',
@@ -76,9 +80,7 @@ function init () {
 		start: true
 	}));
 
-	setupCronJobs();
+	ready();
 }
 
-init();
-
-module.exports = {};
+module.exports.init = init;

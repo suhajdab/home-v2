@@ -6,9 +6,7 @@ var hue = require( 'node-hue-api' ),
 	HueApi = hue.HueApi,
 	lightState = hue.lightState;
 
-var hostname = "10.0.1.2",
-	username = "2b107172103c8c9f1e4ee403426a87f",
-	api = new HueApi( hostname, username );
+var api;
 
 var deviceSignature = {
 	nativeId: '',
@@ -143,6 +141,8 @@ function getAllLights () {
 				type    : 'light',
 				provider: 'hue' // TODO: remove hardcoded provider
 			};
+		} ).catch( function ( err ) {
+			throw new Error ( err );
 		});
 		return Promise.resolve( newObj );
 	});
@@ -197,6 +197,13 @@ function setWhite ( id, kelvin, brightness, duration ) {
 	return setState( id, stateObj, duration );
 }
 
+function init ( globalSettings, providerSettings ) {
+	var host = providerSettings.get( 'host' ),
+		user = providerSettings.get( 'username' );
+	api = new HueApi( host, user );
+	console.log( 'hue ready. host: ' + host );
+}
+
 module.exports = {
 	// should return all known devices
 	getDevices: getAllLights,
@@ -204,7 +211,8 @@ module.exports = {
 	setColor  : setColor,
 	setWhite  : setWhite,
 	on        : on,
-	off       : off
+	off       : off,
+	init      : init
 };
 
 //getAllLights().then( console.log.bind(console) );

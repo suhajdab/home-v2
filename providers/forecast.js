@@ -1,21 +1,10 @@
 require( 'es6-promise' ).polyfill();
-
-// Require the module
 var Forecast = require('forecast');
 
-// Initialize
-var forecast = new Forecast({
-	service: 'forecast.io',
-	key: 'e336357b6655bd7377db35998b848b9d',
-	units: 'celcius', // Only the first letter is parsed
-	cache: true,      // Cache API requests?
-	ttl: {            // How long to cache requests. Uses syntax from moment.js: http://momentjs.com/docs/#/durations/creating/
-		minutes: 30
-	}
-});
+var forecast, globals, settings, geolocation;
 
 var cachedData = {},
-	subscriber = function () { console.log( arguments ); };
+	listeners = [];
 
 /**
  * Function to compare data received from service to old data by object keys that contain relevant weather information
@@ -47,27 +36,26 @@ function filterObject( obj, keys ) {
 // read location data from system.js
 function fetchWeatherData() {
 	return new Promise( function ( resolve, reject ) {
-		forecast.get([ 55.633701, 13.505829 ], true, function( err, weather ) {
-			if( err) reject( err );
-			else resolve( weather );
+		forecast.get([ geolocation.lat, geolocation.long ], true, function( err, weather ) {
+			if( err ) return reject( err );
+			else return resolve( weather );
 		});
 	});
 }
 
 function storeData ( data ) {
-	console.log( 'data expires: ' + new Date(data.expires));
-	if ( isWeatherChanged( cachedData, data )) subscriber( filterObject( data, [ 'currently' ] ));
+	console.log( 'forecast got data: "', data.daily.summary, '". next refresh on ' + new Date( data.expires ));
+	if ( isWeatherChanged( cachedData, data )) dispatch( filterObject( data, [ 'currently', 'daily', 'hourly' ] ));
 	cachedData = data;
 	return Promise.resolve( true );
 }
 
 function log ( obj ) {
-	console.log(JSON.stringify( obj, null, "\t" ));
+	console.log( JSON.stringify( obj, null, "\t" ));
 }
 
 function waitAndRefresh () {
 	var timeout = cachedData.expires - Date.now();
-	console.log( 'waiting: ' + Math.round(timeout/60000) + ' minutes until data expires on: ' + new Date(cachedData.expires));
 	setTimeout( getData, timeout );
 }
 
@@ -78,17 +66,36 @@ function getData () {
 
 function on ( callback ) {
 	// does it need more subscribers?? devices.js might be the only one
-	subscriber = callback;
+	listeners.push( callback );
 }
 
-function init () {
+function ready () {
+	geolocation = globals.get( 'geolocation' );
+	var units = globals.get( 'units' ) == 'metric' ? 'c' : 'f';
+
+	console.log( 'forecast ready', geolocation );
+
+	forecast = new Forecast({
+		service: 'forecast.io',
+		key    : settings.get( 'key' ),
+		units  : units,
+		cache  : true,      // Cache API requests?
+		ttl    : {            // How long to cache requests. Uses syntax from moment.js: http://momentjs.com/docs/#/durations/creating/
+			minutes: 30
+		}
+	});
+
 	getData();
 }
 
-init();
-
+function init ( globalSettings, providerSettings ) {
+	globals = globalSettings;
+	settings = providerSettings;
+	ready();
+}
 
 
 module.exports = {
-	on: on
+	on: on,
+	init: init
 };
