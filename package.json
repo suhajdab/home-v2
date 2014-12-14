@@ -4,7 +4,7 @@
   "description": "home automation in node",
   "main": "home.js",
   "scripts": {
-    "start": "forever -w rules.js && forever -w devices.js",
+    "start": "forever -w rules.js && forever -w devices.js && forever -w hookshot.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
