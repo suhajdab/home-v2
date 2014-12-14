@@ -114,13 +114,13 @@ function ready ( timerData ) {
 	timers = timerData || [];
 	timers.forEach( setup );
 
-	create({
+	/*create({
 		label: "Hubby's weekday alarm",
 	//	cronTime: "00 30 06 *  * 1-5",
 		cronTime: "00 48 08 *  * *",
 		repeat: true,
 		enabled: true
-	});
+	});*/
 }
 
 function init () {
