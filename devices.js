@@ -45,7 +45,7 @@ function findDeviceByTag ( selector ) {
 		return ~( device.tags || [] ).indexOf( selector );
 	});
 
-	console.log( 'found device by tag ' + selector, foundDevices );
+	console.log( 'found devices by tag ' + selector, foundDevices );
 	return foundDevices;
 }
 
@@ -53,7 +53,7 @@ function findDeviceById( id ) {
 	for ( var i = 0, device; device = devices[ i ]; i++ ) {
 		if ( device.id === id ) {
 			console.log( 'found device by id ' + id, device );
-			return device;
+			return [device];
 		}
 	}
 	return false;
@@ -64,6 +64,19 @@ function deviceSelector ( selector ) {
 		return findDeviceByTag( selector );
 	}
 	else return findDeviceById( selector );
+}
+
+/**
+ *
+ * context = event.data
+ * @param device
+ */
+function callService( device ) {
+	try {
+		providers[ device.provider ][ this.service ]( device.nativeId );
+	} catch( err ) {
+		console.error( err );
+	}
 }
 
 function registerNewDevice ( device ) {
@@ -87,7 +100,7 @@ function registerNewDevices( deviceList ) {
 }
 
 function onRegistrationError ( err ) {
-	console.error( 'onRegistrationError', this, err ); // TODO: error logging
+	console.error( 'onRegistrationError', err, this ); // TODO: error logging
 }
 
 function registerProviders ( providers ) {
@@ -108,7 +121,7 @@ function registerProvider ( providerName ) {
 		currentProvider
 			.getDevices()
 			.then( registerNewDevices )
-			.catch( onRegistrationError.bind({ providerName: providerName }) );
+			.catch( onRegistrationError.bind({ providerName: providerName }));
 	}
 	providers[ providerName] = currentProvider;
 }
@@ -123,13 +136,14 @@ function ready () {
 	events.process( 'action', onAction );
 
 	//console.log( deviceSelector( 'room:Kitchen' ));
-	/*setTimeout( function () {
+	setTimeout( function () {
 		console.log( 'Turning on all devices tagged Kitchen' );
-		deviceSelector( 'room:Kitchen' ).forEach( function ( device ){
-			providers[ device.provider ]['on']( device.nativeId );
-			console.log( 'turning on', device)
-		});
-	}, 2000 );*/
+		onAction({ data: { deviceSelector: 'room:Kitchen', service:'on'}});
+		//deviceSelector( 'room:Kitchen' ).forEach( function ( device ){
+		//	providers[ device.provider ]['on']( device.nativeId );
+		//	console.log( 'turning on', device)
+		//});
+	}, 2000 );
 }
 
 function init () {
@@ -145,10 +159,12 @@ function init () {
 function onAction( event, done ) {
 	// TODO: untangle devices, tags and standardize statuses
 	var data = event.data;
-	console.log( 'onAction', data );
-	var device = deviceSelector( data.deviceSelector );
-	providers[ device.provider ][data.service]( device.nativeId );
-	done();
+	var devices = deviceSelector( data.deviceSelector );
+	console.log( 'onAction', data, devices );
+
+	if ( devices ) devices.forEach( callService.bind( data ));
+//	providers[ device.provider ][data.service]( device.nativeId );
+	done && done();
 }
 
 
