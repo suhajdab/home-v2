@@ -174,7 +174,7 @@ function ready ( timerData ) {
 	create({
 		label: "odd day kitchen afternoon off",
 		cronTime: "00 55 18 *  * 1,4,5,7",
-		deviceSelector: 'room:Kitchen',
+		deviceSelector: 'b3701d59-fbbf-4cfe-af56-86a25da7673d',
 		service: 'off',
 		repeat: true,
 		enabled: true
@@ -191,7 +191,7 @@ function ready ( timerData ) {
 	create({
 		label: "even day kitchen afternoon off",
 		cronTime: "00 22 16 *  * 2,3,6",
-		deviceSelector: 'room:Kitchen',
+		deviceSelector: '4e0f500e-7786-4cfc-bbc1-ac0e4e2110dc',
 		service: 'off',
 		repeat: true,
 		enabled: true
