@@ -228,6 +228,24 @@ function ready ( timerData ) {
 		repeat: true,
 		enabled: true
 	});
+
+	//evening
+	create({
+		label: "weekday masterbedroom evening on",
+		cronTime: "00 50 21 *  * *",
+		deviceSelector: '693f3cfa-53f5-4845-97ad-efd0622d248e',
+		service: 'on',
+		repeat: true,
+		enabled: true
+	});
+	create({
+		label: "weekday masterbedroom evening off",
+		cronTime: "00 09 22 *  * *",
+		deviceSelector: '693f3cfa-53f5-4845-97ad-efd0622d248e',
+		service: 'off',
+		repeat: true,
+		enabled: true
+	});
 }
 
 function init () {
