@@ -141,10 +141,10 @@ function getAllLights () {
 				type    : 'light',
 				provider: 'hue' // TODO: remove hardcoded provider
 			};
-		} ).catch( function ( err ) {
-			throw new Error ( err );
-		});
+		} );
 		return Promise.resolve( newObj );
+	}).catch( function ( err ) {
+		throw new Error ( err );
 	});
 }
 

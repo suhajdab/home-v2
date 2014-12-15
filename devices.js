@@ -87,7 +87,7 @@ function registerNewDevices( deviceList ) {
 }
 
 function onRegistrationError ( err ) {
-	console.error( 'onRegistrationError', err ); // TODO: error logging
+	console.error( 'onRegistrationError', this, err ); // TODO: error logging
 }
 
 function registerProviders ( providers ) {
@@ -108,7 +108,7 @@ function registerProvider ( providerName ) {
 		currentProvider
 			.getDevices()
 			.then( registerNewDevices )
-			.catch( onRegistrationError );
+			.catch( onRegistrationError.bind({ providerName: providerName }) );
 	}
 	providers[ providerName] = currentProvider;
 }
