@@ -68,12 +68,21 @@ function triggerTimer () {
 	console.log( 'timer triggered', this );
 	events.create( 'event', {
 		id    : this.id,
-		name  : this.name,
 		title : this.name + ' triggered',
 		source: 'timer'
 	}).priority( 'high' ).attempts( 5 ).save();
 
 	if ( !this.repeat ) disable( this );
+}
+
+function takeAction () {
+	console.log( 'takeAction', this );
+	events.create( 'action', {
+		deviceSelector: this.deviceSelector,
+		service       : this.service,
+		params        : this.params,
+		title         : 'Setting ' + this.deviceSelector + ' to ' + this.service
+	} ).save();
 }
 
 function save() {
@@ -84,7 +93,9 @@ function create ( timer ) {
 	timer.id = uuid.v4();
 	timers.push( timer );
 	setup( timer );
-	save();
+	//save();
+
+	console.log('created timer: ', timer );
 	return timer.id
 }
 
@@ -97,7 +108,7 @@ function enable ( timer ) {
 	timer.enabled = true;
 	timer.cron = new CronJob({
 		cronTime: timer.cronTime,
-		onTick: triggerTimer.bind( timer ),
+		onTick: takeAction.bind( timer ),
 		start: true
 	});
 }
@@ -114,13 +125,109 @@ function ready ( timerData ) {
 	timers = timerData || [];
 	timers.forEach( setup );
 
-	/*create({
-		label: "Hubby's weekday alarm",
-	//	cronTime: "00 30 06 *  * 1-5",
-		cronTime: "00 48 08 *  * *",
+
+	// morning ritual
+	create({
+		label: "weekday masterbedroom morning on",
+		cronTime: "00 30 06 *  * 1-5",
+		deviceSelector: '693f3cfa-53f5-4845-97ad-efd0622d248e',
+		service: 'on',
 		repeat: true,
 		enabled: true
-	});*/
+	});
+	create({
+		label: "weekday masterbedroom morning off",
+		cronTime: "00 19 07 *  * 1-5",
+		deviceSelector: '693f3cfa-53f5-4845-97ad-efd0622d248e',
+		service: 'off',
+		repeat: true,
+		enabled: true
+	});
+
+	create({
+		label: "weekday kitchen morning on",
+		cronTime: "00 07 07 *  * 1-5",
+		deviceSelector: 'room:Kitchen',
+		service: 'on',
+		repeat: true,
+		enabled: true
+	});
+	create({
+		label: "weekday kitchen morning off",
+		cronTime: "00 30 08 *  * 1-5",
+		deviceSelector: 'room:Kitchen',
+		service: 'off',
+		repeat: true,
+		enabled: true
+	});
+
+
+	// afternoon
+	create({
+		label: "odd day kitchen afternoon on",
+		cronTime: "00 35 15 *  * 1,4,5,7",
+		deviceSelector: 'room:Kitchen',
+		service: 'on',
+		repeat: true,
+		enabled: true
+	});
+	create({
+		label: "odd day kitchen afternoon off",
+		cronTime: "00 55 18 *  * 1,4,5,7",
+		deviceSelector: 'room:Kitchen',
+		service: 'off',
+		repeat: true,
+		enabled: true
+	});
+
+	create({
+		label: "even day kitchen afternoon on",
+		cronTime: "00 19 15 *  * 2,3,6",
+		deviceSelector: 'room:Kitchen',
+		service: 'on',
+		repeat: true,
+		enabled: true
+	});
+	create({
+		label: "even day kitchen afternoon off",
+		cronTime: "00 22 16 *  * 2,3,6",
+		deviceSelector: 'room:Kitchen',
+		service: 'off',
+		repeat: true,
+		enabled: true
+	});
+	create({
+		label: "even day kitchen afternoon on",
+		cronTime: "00 19 18 *  * 2,3,6",
+		deviceSelector: 'room:Kitchen',
+		service: 'on',
+		repeat: true,
+		enabled: true
+	});
+	create({
+		label: "even day kitchen afternoon off",
+		cronTime: "00 59 18 *  * 2,3,6",
+		deviceSelector: 'room:Kitchen',
+		service: 'off',
+		repeat: true,
+		enabled: true
+	});
+	create({
+		label: "even day livingroom afternoon on",
+		cronTime: "00 19 16 *  * 2,3,4,6",
+		deviceSelector: 'room:Living room',
+		service: 'on',
+		repeat: true,
+		enabled: true
+	});
+	create({
+		label: "even day livingroom afternoon off",
+		cronTime: "00 07 22 *  * 2,3,4,6",
+		deviceSelector: 'room:Living room',
+		service: 'off',
+		repeat: true,
+		enabled: true
+	});
 }
 
 function init () {

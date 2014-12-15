@@ -136,14 +136,14 @@ function ready () {
 	events.process( 'action', onAction );
 
 	//console.log( deviceSelector( 'room:Kitchen' ));
-	setTimeout( function () {
-		console.log( 'Turning on all devices tagged Kitchen' );
-		onAction({ data: { deviceSelector: 'room:Kitchen', service:'on'}});
+	//setTimeout( function () {
+	//	console.log( 'Turning on all devices tagged Kitchen' );
+	//	onAction({ data: { deviceSelector: 'room:Kitchen', service:'on'}});
 		//deviceSelector( 'room:Kitchen' ).forEach( function ( device ){
 		//	providers[ device.provider ]['on']( device.nativeId );
 		//	console.log( 'turning on', device)
 		//});
-	}, 2000 );
+	//}, 2000 );
 }
 
 function init () {
