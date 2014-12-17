@@ -229,6 +229,24 @@ function ready ( timerData ) {
 		enabled: true
 	});
 
+
+	create({
+		label: "kids room afternoon on",
+		cronTime: "00 57 18 *  * 1-5",
+		deviceSelector: '5ad7e8af-223d-45f5-8b2b-da46ba69c1b6',
+		service: 'on',
+		repeat: true,
+		enabled: true
+	});
+	create({
+		label: "kids room afternoon off",
+		cronTime: "00 22 19 *  * 1-5",
+		deviceSelector: '5ad7e8af-223d-45f5-8b2b-da46ba69c1b6',
+		service: 'off',
+		repeat: true,
+		enabled: true
+	});
+
 	//evening
 	create({
 		label: "weekday masterbedroom evening on",
