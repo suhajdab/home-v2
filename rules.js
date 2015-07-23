@@ -47,7 +47,7 @@ function onEvent( event, done ) {
 function ready() {
 	events.process( 'event', onEvent );
 	console.log( 'rules.js', 'ready', JSON.stringify( rules, null, "\t"));
-//	takeAction({deviceSelector:'zone:garden', service: 'off'});
+	takeAction({deviceSelector:'zone:garden', service: 'off'});
 
 
 //	create( [{ source: 'verisure:alarm', status: 'armed' }], 'zone:house', 'off' );
