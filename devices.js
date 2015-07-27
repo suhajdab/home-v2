@@ -1,7 +1,7 @@
 require( 'es6-promise' ).polyfill();
 var uuid = require('node-uuid');
 var kue = require( 'kue' ),
-	events = kue.createQueue({prefix:'home'});
+	events = kue.createQueue( { prefix: 'home' } );
 
 var db = require( './database-layer.js' );
 var settings = require( './settings.js' );
@@ -95,7 +95,7 @@ function registerProviders ( providers ) {
 }
 
 function registerProvider ( providerName ) {
-	console.log( 'registering provider: ' + providerName );
+	console.log( (new Date()).toTimeString() + 'registering provider: ' + providerName );
 	var currentProvider = platforms[ providerName],
 		providerSettings = settings( providerName ),
 		globalSettings = settings( 'global' );
