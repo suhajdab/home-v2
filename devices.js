@@ -8,7 +8,7 @@ var settings = require( './settings.js' );
 
 
 /* PRIVATE */
-var providers = {}; // should come from redis
+var platforms = {}; // should come from redis
 var devices = [],
 	rooms = [],
 	zones = [];
@@ -96,13 +96,13 @@ function registerProviders ( providers ) {
 
 function registerProvider ( providerName ) {
 	console.log( 'registering provider: ' + providerName );
-	var currentProvider = providers[ providerName],
+	var currentProvider = platforms[ providerName],
 		providerSettings = settings( providerName ),
 		globalSettings = settings( 'global' );
 
 	if ( currentProvider ) return;
 
-	currentProvider = require( './providers/' + providerName + '.js' );
+	currentProvider = require( './platform/' + providerName + '.js' );
 	currentProvider.init( globalSettings, providerSettings );
 	if ( currentProvider.getDevices ) {
 		currentProvider
@@ -110,12 +110,12 @@ function registerProvider ( providerName ) {
 			.then( registerNewDevices )
 			.catch( onRegistrationError.bind({ providerName: providerName }) );
 	}
-	providers[ providerName] = currentProvider;
+	platforms[ providerName] = currentProvider;
 }
 
 function registerNewProvider ( provider ) {
 	registerProvider( provider );
-	db.set( 'providers', Object.keys( providers ));
+	db.set( 'platforms', Object.keys( platforms ));
 }
 
 function ready () {
@@ -126,7 +126,7 @@ function ready () {
 	/*setTimeout( function () {
 		console.log( 'Turning on all devices tagged Kitchen' );
 		deviceSelector( 'room:Kitchen' ).forEach( function ( device ){
-			providers[ device.provider ]['on']( device.nativeId );
+			platform[ device.provider ]['on']( device.nativeId );
 			console.log( 'turning on', device)
 		});
 	}, 2000 );*/
@@ -134,7 +134,7 @@ function ready () {
 
 function init () {
 	Promise.all([
-		db.get( 'providers' ).then( registerProviders ),
+		db.get( 'platforms' ).then( registerProviders ),
 		db.get( 'devices' ).then( function ( data ) { devices = data; } ),
 		db.get( 'zones' ).then( function ( data ) { zones = data; } ),
 		db.get( 'rooms' ).then( function ( data ) { rooms = data; } )
@@ -147,7 +147,7 @@ function onAction( event, done ) {
 	var data = event.data;
 	console.log( 'onAction', data );
 	var device = deviceSelector( data.deviceSelector );
-	providers[ device.provider ][data.service]( device.nativeId );
+	platforms[ device.provider ][data.service]( device.nativeId );
 	done();
 }
 

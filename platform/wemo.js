@@ -34,7 +34,7 @@ function standardizeDevices ( devices ) {
 			label   : device.friendlyName,
 			nativeId: device.serialNumber,
 			type    : 'switch',
-			provider: 'wemo' // TODO: remove hardcoded provider
+			platform: 'wemo' // TODO: remove hardcoded platform
 		};
 	});
 }

@@ -11,7 +11,7 @@ var api;
 var deviceSignature = {
 	nativeId: '',
 	label: '',
-	provider: 'hue',
+	platform: 'hue',
 	tags: []
 };
 
@@ -139,7 +139,7 @@ function getAllLights () {
 				nativeId: obj.id,
 				label   : obj.name,
 				type    : 'light',
-				provider: 'hue' // TODO: remove hardcoded provider
+				platform: 'hue' // TODO: remove hardcoded platform
 			};
 		} );
 		return Promise.resolve( newObj );
@@ -197,9 +197,9 @@ function setWhite ( id, kelvin, brightness, duration ) {
 	return setState( id, stateObj, duration );
 }
 
-function init ( globalSettings, providerSettings ) {
-	var host = providerSettings.get( 'host' ),
-		user = providerSettings.get( 'username' );
+function init ( globalSettings, platformSettings ) {
+	var host = platformSettings.get( 'host' ),
+		user = platformSettings.get( 'username' );
 	api = new HueApi( host, user );
 	console.log( 'hue ready. host: ' + host );
 }

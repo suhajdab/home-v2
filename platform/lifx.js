@@ -28,7 +28,7 @@ var apiUrl = 'https://api.lifx.com/v1beta1/lights',
 	token;
 
 //var signature = {
-//	provider: 'lifx',
+//	platform: 'lifx',
 //	type: 'lamp',
 //	service: {
 //		on: [
@@ -119,7 +119,7 @@ function getAllLights() {
 					nativeId: obj.id,
 					label: obj.label,
 					type: 'light',
-					provider: 'lifx', // TODO: remove hardcoded provider,
+					platform: 'lifx', // TODO: remove hardcoded platform,
 					connected: obj.connected,
 					power: obj.power,
 					color: obj.color,
@@ -233,10 +233,10 @@ function setWhite( id, kelvin, brightness, duration, powerOn ) {
 	return setState( id, 'color', stateObj, duration, powerOn );
 }
 
-function init( globalSettings, providerSettings ) {
+function init( globalSettings, platformSettings ) {
 	'use strict';
 
-	token = providerSettings.get( 'token' );
+	token = platformSettings.get( 'token' );
 	console.log( 'lifx ready' );
 }
 

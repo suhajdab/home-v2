@@ -88,9 +88,9 @@ function ready () {
 	getData();
 }
 
-function init ( globalSettings, providerSettings ) {
+function init ( globalSettings, platformSettings ) {
 	globals = globalSettings;
-	settings = providerSettings;
+	settings = platformSettings;
 	ready();
 }
 

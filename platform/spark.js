@@ -10,10 +10,10 @@ require( 'es6-promise' ).polyfill();
 
 
 
-function init ( globalSettings, providerSettings ) {
+function init ( globalSettings, platformSettings ) {
     'use strict';
-	var username = providerSettings.get( 'username' ),
-		password = providerSettings.get( 'password' );
+	var username = platformSettings.get( 'username' ),
+		password = platformSettings.get( 'password' );
 
 	Spark.login({ username: username, password: password }, function( err, body ) {
       console.log( 'API call login completed on callback:', body );

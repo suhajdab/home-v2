@@ -77,7 +77,7 @@ function ready() {
 /**
  * Function sets up a repeating cron job to generate sun phase jobs each day, and does generation for current day
  */
-function init( globalSettings/*, providerSettings */ ) {
+function init( globalSettings/*, platformSettings */ ) {
 	'use strict';
 
 	console.log( arguments );
