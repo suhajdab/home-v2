@@ -99,7 +99,7 @@ function filterOutRegisteredDevices ( device ) {
 	'use strict';
 
 	for ( var d in devices ) {
-		if ( devices[ d ].nativeId === device.nativeId && devices[ d ].provider === device.provider ) {
+		if ( devices[ d ].nativeId === device.nativeId && devices[ d ].platform === device.platform ) {
 			return false;
 		}
 	}
@@ -118,39 +118,39 @@ function onRegistrationError ( err ) {
 	console.error( 'onRegistrationError', this, err ); // TODO: error logging
 }
 
-function registerProvider ( providerName ) {
+function registerPlatform ( platformName ) {
 	'use strict';
 
-	console.log( (new Date()).toTimeString() + 'registering provider: ' + providerName );
-	var currentProvider = platforms[ providerName],
-		providerSettings = settings( providerName ),
+	console.log( (new Date()).toTimeString() + 'registering plaform: ' + platformName );
+	var currentPlatform = platforms[ platformName],
+		platformSettings = settings( platformName ),
 		globalSettings = settings( 'global' );
 
-	if ( currentProvider ) {
+	if ( currentPlatform ) {
 		return;
 	}
 
-	currentProvider = require( './platform/' + providerName + '.js' );
-	currentProvider.init( globalSettings, providerSettings );
-	if ( currentProvider.getDevices ) {
-		currentProvider
+	currentPlatform = require( './platform/' + platformName + '.js' );
+	currentPlatform.init( globalSettings, platformSettings );
+	if ( currentPlatform.getDevices ) {
+		currentPlatform
 			.getDevices()
 			.then( registerNewDevices )
-			.catch( onRegistrationError.bind({ providerName: providerName }) );
+			.catch( onRegistrationError.bind({ platformName: platformName }) );
 	}
-	platforms[ providerName] = currentProvider;
+	platforms[ platformName] = currentPlatform;
 }
 
-function registerProviders ( providers ) {
+function registerPlatforms ( platforms ) {
 	'use strict';
 
-	providers.forEach( registerProvider );
+	platforms.forEach( registerPlatform );
 }
 
-function registerNewProvider ( provider ) {
+function registerNewPlatform ( platform ) {
 	'use strict';
 
-	registerProvider( provider );
+	registerPlatform( platform );
 	db.set( 'platforms', Object.keys( platforms ));
 }
 
@@ -161,7 +161,7 @@ function onAction( event, done ) {
 	var data = event.data;
 	console.log( 'onAction', data );
 	var device = deviceSelector( data.deviceSelector );
-	platforms[ device.provider ][data.service]( device.nativeId );
+	platforms[ device.platform ][data.service]( device.nativeId );
 	done();
 }
 
@@ -175,7 +175,7 @@ function ready () {
 	/*setTimeout( function () {
 		console.log( 'Turning on all devices tagged Kitchen' );
 		deviceSelector( 'room:Kitchen' ).forEach( function ( device ){
-			platform[ device.provider ]['on']( device.nativeId );
+			platform[ device.platform ]['on']( device.nativeId );
 			console.log( 'turning on', device)
 		});
 	}, 2000 );*/
@@ -185,7 +185,7 @@ function init () {
 	'use strict';
 
 	Promise.all([
-		db.get( 'platforms' ).then( registerProviders ),
+		db.get( 'platforms' ).then( registerPlatforms ),
 		db.get( 'devices' ).then( function ( data ) { devices = data; } ),
 		db.get( 'zones' ).then( function ( data ) { zones = data; } ),
 		db.get( 'rooms' ).then( function ( data ) { rooms = data; } )
