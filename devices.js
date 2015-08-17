@@ -121,7 +121,7 @@ function onRegistrationError ( err ) {
 function registerPlatform ( platformName ) {
 	'use strict';
 
-	console.log( (new Date()).toTimeString() + 'registering plaform: ' + platformName );
+	console.log( (new Date()).toTimeString() + 'registering platform: ' + platformName );
 	var currentPlatform = platforms[ platformName],
 		platformSettings = settings( platformName ),
 		globalSettings = settings( 'global' );
