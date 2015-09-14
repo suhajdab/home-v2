@@ -22,10 +22,16 @@ require( 'es6-promise' ).polyfill();
 
 //	color conversion library
 var Colr = require( 'Colr' ),
-	fetch = require( 'node-fetch' );
+	fetch = require( 'node-fetch' ),
+	objectAssign = require( 'object-assign' );
 
 var apiUrl = 'https://api.lifx.com/v1beta1/lights',
-	token;
+	rateLimitRemainingHeader = 'X-RateLimit-Remaining',	// Number of requests you are allowed to make in the current 60 second window.
+	rateLimitResetHeader = 'X-RateLimit-Reset', 		// Unix timestamp for when the next window begins.
+	pollTimeout = 2 * 1000,								// 60 requests allowed in 60 sec. Polling every 2nd s leaves half
+	pollRetries = 10,
+	token,
+	cachedState = {};
 
 //var signature = {
 //	platform: 'lifx',
@@ -43,6 +49,9 @@ var apiUrl = 'https://api.lifx.com/v1beta1/lights',
 //		]
 //	}
 //};
+
+// TODO: consider implementing single string colors via api, ex: purple
+// TODO: reachability handling? http://api.developer.lifx.com/docs/reachability
 
 /* PRIVATE */
 /**
@@ -70,8 +79,36 @@ function apiFetch( url, data, method ) {
 		headers: headers,
 		body: JSON.stringify( data )
 	} ).then( function ( res ) {
+		console.log( res.ok );
+		console.log( res.status );
+		console.log( res.statusText );
+		console.log( res.headers.get( rateLimitResetHeader ) );
+		console.log( res.headers.get( rateLimitRemainingHeader ) );
 		return res.json();
 	} );
+}
+
+/**
+ * Function parses response from lifx's cloud api
+ * @param {Object} states  raw json response from api
+ * @returns {Promise}
+ */
+function parseLightStates( states ) {
+	var newObj = states.map( function ( obj ) {
+		var tag = obj.group && obj.group.name ? 'room:' + obj.group.name : '';
+		return {
+			nativeId: obj.id,
+			label: obj.label,
+			type: 'light',
+			platform: 'lifx', // TODO: remove hardcoded platform,
+			connected: obj.connected,
+			power: obj.power,
+			color: obj.color,
+			brightness: obj.brightness,
+			tags: [ tag ]
+		};
+	} );
+	return Promise.resolve( newObj );
 }
 
 /**
@@ -102,6 +139,61 @@ function addDuration( stateObj, duration ) {
 	}
 }
 
+/**
+ * Function searches for a given native device id in an array
+ * @param {String} nativeId
+ * @param {Array} deviceArray
+ * @returns {Object}  found device object or empty object
+ */
+function findByNativeId( nativeId, deviceArray ) {
+	var i, obj;
+
+	for ( i = 0; obj = deviceArray[ i ]; i++ ) {
+		if ( obj.nativeId === nativeId ) {
+			return obj;
+		}
+	}
+	return {};
+}
+
+/**
+ *
+ * @param cachedStates
+ * @param currentStates
+ */
+// TODO: rewrite with [].reduce to return modified states, then handle that array
+function diffState( cachedStates, currentStates ) {
+	//TODO detect add/remove of devices
+	var i,
+		cached,
+		current;
+
+	for ( i = 0; current = currentStates[ i ]; i++ ) {
+		cached = findByNativeId( current.nativeId, cachedStates );
+
+		if ( JSON.stringify( cached ) !== JSON.stringify( current ) ) {
+			console.log( current );
+		}
+	}
+
+	cachedState = objectAssign( {}, currentStates );
+}
+
+/**
+ * Function regularly polls lights' states to make sure external changes are kept track of
+ */
+// TODO: polling interval should be a) dynamically adjusted based on remaining API quota b) using 2nd token when 1st is spent
+function pollStatus() {
+	apiFetch( '/all' )
+		.then( parseLightStates )
+		.then( function ( states ) {
+			diffState( cachedState, states );
+//		console.log( states );
+		} ).then( function () {
+			setTimeout( pollStatus, pollTimeout );
+		} );
+}
+
 /* PUBLIC */
 /**
  * Returns an array of known devices with id & label
@@ -112,23 +204,7 @@ function getAllLights() {
 	'use strict';
 
 	return apiFetch( '/all' )
-		.then( function ( result ) {
-			var newObj = result.map( function ( obj ) {
-				var tag = obj.group && obj.group.name ? 'room:' + obj.group.name : '';
-				return {
-					nativeId: obj.id,
-					label: obj.label,
-					type: 'light',
-					platform: 'lifx', // TODO: remove hardcoded platform,
-					connected: obj.connected,
-					power: obj.power,
-					color: obj.color,
-					brightness: obj.brightness,
-					tags: [ tag ]
-				};
-			} );
-			return Promise.resolve( newObj );
-		} );
+		.then( parseLightStates );
 }
 
 /**
@@ -237,6 +313,8 @@ function init( globalSettings, platformSettings ) {
 	'use strict';
 
 	token = platformSettings.get( 'token' );
+	pollStatus();
+
 	console.log( 'lifx ready' );
 }
 
@@ -250,14 +328,3 @@ module.exports = {
 	off: off,
 	init: init
 };
-
-/*
- hubby's nl : d073d5001b3b
- seashell : d073d50018c1
- dining table : d073d5001acc
- island lamp : d073d5000cb1
- */
-
-//test
-//setWhite('d073d5000cb1', 3000, 100, 5).then( console.log.bind(console) );
-//setColor('d073d5000cb1', {h:280,s:100,l:50}, 5).then( console.log.bind(console) );
