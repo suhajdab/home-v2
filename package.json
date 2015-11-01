@@ -32,8 +32,5 @@
     "suncalc": "~1.6.0",
     "verisure-api": "git://github.com/suhajdab/verisure-api.git#master",
     "wemore": "0.0.1"
-  },
-  "devDependencies": {
-    "grunt": "^0.4.5"
   }
 }
