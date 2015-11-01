@@ -2,7 +2,6 @@
  * RULES
  */
 
-require( 'es6-promise' ).polyfill();
 var uuid = require( 'node-uuid' );
 var objectAssign = require( 'object-assign' );
 var db = require( './database-layer.js' );

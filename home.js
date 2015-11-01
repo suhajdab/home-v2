@@ -1,6 +1,10 @@
 /**
  * HOME - bus
  */
+// Ensure we have working Promises.
+// https://github.com/promises-aplus/promises-spec/issues/179
+// http://stackoverflow.com/a/24371533/299958
+require( 'es6-promise' ).polyfill();
 
 // TODO: abstract away queuing mechanism
 // TODO: error logging to db

@@ -2,7 +2,6 @@
  * timer
  */
 
-require( 'es6-promise' ).polyfill();
 var CronJob = require( 'cron' ).CronJob;
 var db = require( './../database-layer.js' );
 var uuid = require( 'node-uuid' );

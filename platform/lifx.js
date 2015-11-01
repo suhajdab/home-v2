@@ -18,8 +18,6 @@
  Duration in seconds ( or m or h ) (optional)
 
  */
-require( 'es6-promise' ).polyfill();
-
 //	color conversion library
 var Colr = require( 'Colr' ),
 	fetch = require( 'node-fetch' ),

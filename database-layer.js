@@ -1,4 +1,3 @@
-require('es6-promise').polyfill();
 var redis = require( 'redis' ).createClient();
 
 function set ( key, value ) {
