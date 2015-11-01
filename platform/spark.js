@@ -1,6 +1,5 @@
 /*jshint node: true*/
 var spark = require( 'spark' );
-require( 'es6-promise' ).polyfill();
 
 /**
  * Gets a variable value for the device

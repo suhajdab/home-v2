@@ -1,7 +1,5 @@
 var db = require( './database-layer.js' ),
 	objectAssign = require( 'object-assign' );
-require( 'es6-promise' ).polyfill();
-
 
 var settings;
 

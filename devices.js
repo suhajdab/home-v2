@@ -1,4 +1,3 @@
-require( 'es6-promise' ).polyfill();
 var uuid = require('node-uuid' ),
 	kue = require( 'kue' );
 

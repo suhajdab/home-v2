@@ -1,5 +1,3 @@
-require( 'es6-promise' ).polyfill();
-
 var Colr = require( 'Colr' );
 
 var hue = require( 'node-hue-api' ),
