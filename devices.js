@@ -1,12 +1,11 @@
 require( 'es6-promise' ).polyfill();
-var uuid = require('node-uuid' ),
+var uuid = require( 'node-uuid' ),
 	kue = require( 'kue' );
 
 var db = require( './database-layer.js' );
 var settings = require( './settings.js' );
 
 var events = kue.createQueue( { prefix: 'home' } );
-
 
 /* PRIVATE */
 var platforms = {}; // should come from redis
@@ -18,11 +17,18 @@ var devices = [],
 
 /* TODO: add listeners to devices
 
+ using event emitters
+
+ var events = require('events');
+ var eventEmitter = new events.EventEmitter();
+ http://www.sitepoint.com/nodejs-events-and-eventemitter/
+
+ convert from kue to emitter
  events.create( 'event', {
-	 id    : this.id,
-	 name  : this.name,
-	 title : this.name + ' triggered',
-	 source: 'timer'
+ id    : this.id,
+ name  : this.name,
+ title : this.name + ' triggered',
+ source: 'timer'
  }).save();
  */
 
@@ -30,7 +36,7 @@ var devices = [],
  * Read new room and zone tags, and store unique in db
  * @param {Array} tags
  */
-function importTags ( tags ) {
+function importTags( tags ) {
 	'use strict';
 
 	tags.forEach( function ( tag ) {
@@ -38,23 +44,23 @@ function importTags ( tags ) {
 		if ( arr.length < 2 ) {
 			return;
 		}
-		if ( arr[ 0 ] === 'room' && !~rooms.indexOf( arr[ 1 ] )) {
-			rooms.push( arr[ 1 ]);
+		if ( arr[ 0 ] === 'room' && !~rooms.indexOf( arr[ 1 ] ) ) {
+			rooms.push( arr[ 1 ] );
 		}
-		if ( arr[ 0 ] === 'zone' && !~zones.indexOf( arr[ 1 ] )) {
-			zones.push( arr[ 1 ]);
+		if ( arr[ 0 ] === 'zone' && !~zones.indexOf( arr[ 1 ] ) ) {
+			zones.push( arr[ 1 ] );
 		}
-	});
+	} );
 	db.set( 'rooms', rooms );
 	db.set( 'zones', zones );
 }
 
-function findDeviceByTag ( selector ) {
+function findDeviceByTag( selector ) {
 	'use strict';
 
 	var foundDevices = devices.filter( function ( device ) {
 		return ~( device.tags || [] ).indexOf( selector );
-	});
+	} );
 
 	console.log( 'found device by tag ' + selector, foundDevices );
 	return foundDevices;
@@ -72,10 +78,10 @@ function findDeviceById( id ) {
 	return false;
 }
 
-function deviceSelector ( selector ) {
+function findDevice( selector ) {
 	'use strict';
 
-	if ( ~selector.indexOf( ':') ) {
+	if ( ~selector.indexOf( ':' ) ) {
 		return findDeviceByTag( selector );
 	}
 	else {
@@ -83,7 +89,29 @@ function deviceSelector ( selector ) {
 	}
 }
 
-function registerNewDevice ( device ) {
+function concatDevices( accum, sel ) {
+	'use strict';
+
+	var found = findDevice( sel );
+
+	if ( found ) {
+		return accum.concat( found );
+	} else {
+		return accum;
+	}
+}
+
+function deviceSelector( selector ) {
+	'use strict';
+
+	if ( Array.isArray( selector ) ) {
+		return selector.reduce( concatDevices, [] );
+	} else {
+		return findDevice( selector );
+	}
+}
+
+function registerNewDevice( device ) {
 	'use strict';
 
 	// add home specific id to device
@@ -91,11 +119,11 @@ function registerNewDevice ( device ) {
 	devices.push( device );
 	db.set( 'devices', devices );
 	if ( device.tags ) {
-		importTags ( device.tags );
+		importTags( device.tags );
 	}
 }
 
-function filterOutRegisteredDevices ( device ) {
+function filterOutRegisteredDevices( device ) {
 	'use strict';
 
 	for ( var d in devices ) {
@@ -112,17 +140,17 @@ function registerNewDevices( deviceList ) {
 	deviceList.filter( filterOutRegisteredDevices ).forEach( registerNewDevice );
 }
 
-function onRegistrationError ( err ) {
+function onRegistrationError( err ) {
 	'use strict';
 
 	console.error( 'onRegistrationError', this, err ); // TODO: error logging
 }
 
-function registerPlatform ( platformName ) {
+function registerPlatform( platformName ) {
 	'use strict';
 
 	console.log( (new Date()).toTimeString() + 'registering platform: ' + platformName );
-	var currentPlatform = platforms[ platformName],
+	var currentPlatform = platforms[ platformName ],
 		platformSettings = settings( platformName ),
 		globalSettings = settings( 'global' );
 
@@ -136,22 +164,22 @@ function registerPlatform ( platformName ) {
 		currentPlatform
 			.getDevices()
 			.then( registerNewDevices )
-			.catch( onRegistrationError.bind({ platformName: platformName }) );
+			.catch( onRegistrationError.bind( { platformName: platformName } ) );
 	}
-	platforms[ platformName] = currentPlatform;
+	platforms[ platformName ] = currentPlatform;
 }
 
-function registerPlatforms ( platforms ) {
+function registerPlatforms( platforms ) {
 	'use strict';
 
 	platforms.forEach( registerPlatform );
 }
 
-function registerNewPlatform ( platform ) {
+function registerNewPlatform( platform ) {
 	'use strict';
 
 	registerPlatform( platform );
-	db.set( 'platforms', Object.keys( platforms ));
+	db.set( 'platforms', Object.keys( platforms ) );
 }
 
 function onAction( event, done ) {
@@ -161,11 +189,11 @@ function onAction( event, done ) {
 	var data = event.data;
 	console.log( 'onAction', data );
 	var device = deviceSelector( data.deviceSelector );
-	platforms[ device.platform ][data.service]( device.nativeId );
+	platforms[ device.platform ][ data.service ]( device.nativeId );
 	done();
 }
 
-function ready () {
+function ready() {
 	'use strict';
 
 	console.log( 'device.js ready', devices );
@@ -173,25 +201,29 @@ function ready () {
 
 	//console.log( deviceSelector( 'room:Kitchen' ));
 	/*setTimeout( function () {
-		console.log( 'Turning on all devices tagged Kitchen' );
-		deviceSelector( 'room:Kitchen' ).forEach( function ( device ){
-			platform[ device.platform ]['on']( device.nativeId );
-			console.log( 'turning on', device)
-		});
-	}, 2000 );*/
+	 console.log( 'Turning on all devices tagged Kitchen' );
+	 deviceSelector( 'room:Kitchen' ).forEach( function ( device ){
+	 platform[ device.platform ]['on']( device.nativeId );
+	 console.log( 'turning on', device)
+	 });
+	 }, 2000 );*/
 }
 
-function init () {
+function init() {
 	'use strict';
 
-	Promise.all([
+	Promise.all( [
 		db.get( 'platforms' ).then( registerPlatforms ),
-		db.get( 'devices' ).then( function ( data ) { devices = data; } ),
-		db.get( 'zones' ).then( function ( data ) { zones = data; } ),
-		db.get( 'rooms' ).then( function ( data ) { rooms = data; } )
-	]).then( ready );
+		db.get( 'devices' ).then( function ( data ) {
+			devices = data;
+		} ),
+		db.get( 'zones' ).then( function ( data ) {
+			zones = data;
+		} ),
+		db.get( 'rooms' ).then( function ( data ) {
+			rooms = data;
+		} )
+	] ).then( ready );
 }
-
-
 
 init();
