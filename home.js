@@ -4,18 +4,17 @@
 
 // TODO: abstract away queuing mechanism
 // TODO: error logging to db
-var kue = require('kue' ),
-	events = kue.createQueue({prefix:'home'});
+var kue = require( 'kue' ),
+	events = kue.createQueue( { prefix: 'home' } );
 
 var debug = true;
 
-function log () {
+function log() {
 	if ( debug ) console.log( arguments );
 }
 
-
-function lifxSunRise( device ){
-	var duration = 30*60*1000;
+function lifxSunRise( device ) {
+	var duration = 30 * 60 * 1000;
 	lx.lightsColour( 0x00, 0x00, 0x00, 0x00, 0, device.name );
 	lx.lightsOn( device.name );
 	setTimeout( function () {

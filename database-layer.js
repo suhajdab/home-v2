@@ -1,7 +1,7 @@
-require('es6-promise').polyfill();
+require( 'es6-promise' ).polyfill();
 var redis = require( 'redis' ).createClient();
 
-function set ( key, value ) {
+function set( key, value ) {
 	'use strict';
 	var json = JSON.stringify( value );
 
@@ -12,22 +12,22 @@ function set ( key, value ) {
 			} else {
 				resolve( response );
 			}
-		});
-	});
+		} );
+	} );
 
 }
 
-function get ( key ) {
+function get( key ) {
 	'use strict';
 	return new Promise( function ( resolve, reject ) {
 		redis.get( key, function ( err, response ) {
 			if ( err ) {
 				reject( err );
 			} else {
-				resolve( JSON.parse( response ));
+				resolve( JSON.parse( response ) );
 			}
-		});
-	});
+		} );
+	} );
 }
 
 module.exports = {

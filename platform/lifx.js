@@ -28,7 +28,7 @@ var Colr = require( 'Colr' ),
 var apiUrl = 'https://api.lifx.com/v1beta1/lights',
 	rateLimitRemainingHeader = 'X-RateLimit-Remaining',	// Number of requests you are allowed to make in the current 60 second window.
 	rateLimitResetHeader = 'X-RateLimit-Reset', 		// Unix timestamp for when the next window begins.
-	pollTimeout = 2 * 1000,								// 60 requests allowed in 60 sec. Polling every 2nd s leaves half
+	pollTimeout = 2 * 1000,								// 60 requests allowed in 60 sec. Polling every 2nd sec leaves half
 	pollRetries = 10,
 	token,
 	cachedState = {};
@@ -79,11 +79,11 @@ function apiFetch( url, data, method ) {
 		headers: headers,
 		body: JSON.stringify( data )
 	} ).then( function ( res ) {
-		console.log( res.ok );
-		console.log( res.status );
-		console.log( res.statusText );
-		console.log( res.headers.get( rateLimitResetHeader ) );
-		console.log( res.headers.get( rateLimitRemainingHeader ) );
+//		console.log( res.ok );
+//		console.log( res.status );
+//		console.log( res.statusText );
+//		console.log( res.headers.get( rateLimitResetHeader ) );
+//		console.log( res.headers.get( rateLimitRemainingHeader ) );
 		return res.json();
 	} );
 }

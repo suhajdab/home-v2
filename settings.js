@@ -2,25 +2,24 @@ var db = require( './database-layer.js' ),
 	objectAssign = require( 'object-assign' );
 require( 'es6-promise' ).polyfill();
 
-
 var settings;
 
-function save () {
+function save() {
 	return db.set( 'settings', settings );
 }
 
-function load () {
+function load() {
 	return db.get( 'settings' ); // TODO: needs error handling
 }
 
-function configFactory ( name ) {
+function configFactory( name ) {
 	var api = {};
 
 	//console.log( 'generating settings for ' + name );
 	if ( typeof name !== 'string' ) return;
 	settings[ name ] = settings[ name ] || {};
 
-	api.get = function( key ) {
+	api.get = function ( key ) {
 		return settings[ name ][ key ] || false;
 	};
 
@@ -35,11 +34,11 @@ function configFactory ( name ) {
 	return api;
 }
 
-function ready ( data ) {
+function ready( data ) {
 	settings = data || {};
 }
 
-function init () {
+function init() {
 	load().then( ready );
 }
 

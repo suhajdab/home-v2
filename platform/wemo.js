@@ -11,7 +11,7 @@ var devices = [];
  * @param {Object} device - device object
  * @returns {*|boolean}
  */
-function isWemo ( device ) {
+function isWemo( device ) {
 	return device.firmwareVersion && (/^(WeMo)/).test( device.firmwareVersion );
 }
 
@@ -19,54 +19,54 @@ function isWemo ( device ) {
  *
  * @returns {Promise}
  */
-function getDevices () {
+function getDevices() {
 	return new Promise( function ( resolve, reject ) {
 		// TODO think of a better way to wait for ready
 		setTimeout( function () {
-			resolve( standardizeDevices( devices ));
+			resolve( standardizeDevices( devices ) );
 		}, 1000 );
-	});
+	} );
 }
 
-function standardizeDevices ( devices ) {
+function standardizeDevices( devices ) {
 	return devices.map( function ( device ) {
 		return {
-			label   : device.friendlyName,
+			label: device.friendlyName,
 			nativeId: device.serialNumber,
-			type    : 'switch',
+			type: 'switch',
 			platform: 'wemo' // TODO: remove hardcoded platform
 		};
-	});
+	} );
 }
 
-function findDeviceByNativeId ( id ) {
+function findDeviceByNativeId( id ) {
 	var result;
 	devices.forEach( function ( device ) {
 		if ( device.serialNumber == id ) result = device;
-	});
+	} );
 	return result;
 }
 
-function on ( id ) {
+function on( id ) {
 	var device = findDeviceByNativeId( id );
 	device && device.setBinaryState( true );
 }
 
-function off ( id ) {
+function off( id ) {
 	var device = findDeviceByNativeId( id );
 	device && device.setBinaryState( false );
 }
 
-function ready () {
+function ready() {
 	console.log( 'wemo ready' );
 }
 
-function discover () {
+function discover() {
 	var discovery = wemore.Discover()
-		.on( 'device', function( device ) {
+		.on( 'device', function ( device ) {
 			// seems to discover hue hub too, so gotta filter
-			if ( isWemo( device )) devices.push( device );
-		});
+			if ( isWemo( device ) ) devices.push( device );
+		} );
 
 	// not quite sure how to ensure discovery ended
 	setTimeout( function () {
@@ -82,7 +82,7 @@ function init() {
 module.exports = {
 	// should return all known devices
 	getDevices: getDevices,
-	on        : on,
-	off       : off,
-	init      : init
+	on: on,
+	off: off,
+	init: init
 };

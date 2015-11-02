@@ -80,7 +80,6 @@ function ready() {
 function init( globalSettings/*, platformSettings */ ) {
 	'use strict';
 
-	console.log( arguments );
 	geolocation = globalSettings.get( 'geolocation' );
 	// cron job to regenerate sun phase crons every day
 	jobs.push( new CronJob( {

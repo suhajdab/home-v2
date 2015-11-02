@@ -121,6 +121,7 @@ function ready ( timerData ) {
 		repeat: true,
 		enabled: true
 	});*/
+
 }
 
 function init () {
