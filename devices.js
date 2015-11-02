@@ -168,7 +168,7 @@ function onAction( event, done ) {
 function ready () {
 	'use strict';
 
-	//console.log( 'device.js ready', devices );
+	console.log( 'device.js ready', devices );
 	events.process( 'action', onAction );
 
 	//console.log( deviceSelector( 'room:Kitchen' ));
