@@ -15,17 +15,17 @@ function load() {
 function configFactory( name ) {
 	var api = {};
 
-	//console.log( 'generating settings for ' + name );
+	// console.log( 'generating settings for ' + name );
 	if ( typeof name !== 'string' ) return;
 	settings[ name ] = settings[ name ] || {};
 
-	api.get = function ( key ) {
+	api.get = function( key ) {
 		return settings[ name ][ key ] || false;
 	};
 
 	// global are not to be tampered with by modules
 	if ( name !== 'global' ) {
-		api.set = function ( key, value ) {
+		api.set = function( key, value ) {
 			settings[ name ][ key ] = value;
 			save();
 		};

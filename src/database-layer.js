@@ -5,8 +5,8 @@ function set( key, value ) {
 	'use strict';
 	var json = JSON.stringify( value );
 
-	return new Promise( function ( resolve, reject ) {
-		redis.set( key, json, function ( err, response ) {
+	return new Promise( function( resolve, reject ) {
+		redis.set( key, json, function( err, response ) {
 			if ( err ) {
 				reject( err );
 			} else {
@@ -18,8 +18,8 @@ function set( key, value ) {
 
 function get( key ) {
 	'use strict';
-	return new Promise( function ( resolve, reject ) {
-		redis.get( key, function ( err, response ) {
+	return new Promise( function( resolve, reject ) {
+		redis.get( key, function( err, response ) {
 			if ( err ) {
 				reject( err );
 			} else {
