@@ -14,7 +14,6 @@ function set( key, value ) {
 			}
 		} );
 	} );
-
 }
 
 function get( key ) {

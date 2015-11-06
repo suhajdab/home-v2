@@ -15,7 +15,7 @@ var state = {};
 var rules = [];
 
 function rightConditions( conditions, data ) {
-	for ( var i = 0, condition; condition = conditions[ i ]; i++ ) {
+	for ( var i = 0, condition; (condition = conditions[ i ]); i++ ) {
 		for ( var key in condition ) {
 			if ( data[ key ] != condition[ key ] ) return false;
 		}
@@ -37,7 +37,7 @@ function onEvent( event, done ) {
 	var data = event.data;
 
 	console.log( 'onEvent', data );
-	for ( var i = 0, rule; rule = rules[ i ]; i++ ) {
+	for ( var i = 0, rule; (rule = rules[ i ]); i++ ) {
 		if ( rightConditions( rule.conditions, data ) ) takeAction( rule );
 	}
 
