@@ -2,10 +2,10 @@
   "name": "home-v2",
   "version": "0.1.0",
   "description": "home automation in node",
-  "main": "home.js",
+  "main": "src/index.js",
   "scripts": {
     "start": "./node_modules/.bin/nf start",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "./node_modules/.bin/eslint --ignore-pattern node_modules **/*.js"
   },
   "repository": {
     "type": "git",
@@ -34,6 +34,7 @@
     "wemore": "0.0.1"
   },
   "devDependencies": {
+    "eslint": "^1.8.0",
     "foreman": "^1.4.1",
     "forever": "^0.15.1"
   }

@@ -39,7 +39,7 @@ var devices = [],
 function importTags( tags ) {
 	'use strict';
 
-	tags.forEach( function ( tag ) {
+	tags.forEach( function( tag ) {
 		var arr = tag.split( ':' );
 		if ( arr.length < 2 ) {
 			return;
@@ -58,7 +58,7 @@ function importTags( tags ) {
 function findDeviceByTag( selector ) {
 	'use strict';
 
-	var foundDevices = devices.filter( function ( device ) {
+	var foundDevices = devices.filter( function( device ) {
 		return ~( device.tags || [] ).indexOf( selector );
 	} );
 
@@ -69,7 +69,7 @@ function findDeviceByTag( selector ) {
 function findDeviceById( id ) {
 	'use strict';
 
-	for ( var i = 0, device; (device = devices[ i ]); i++ ) {
+	for ( var i = 0, device; ( device = devices[ i ] ); i++ ) {
 		if ( device.id === id ) {
 			console.log( 'found device by id ' + id, device );
 			return device;
@@ -149,7 +149,7 @@ function onRegistrationError( err ) {
 function registerPlatform( platformName ) {
 	'use strict';
 
-	console.log( (new Date()).toTimeString() + 'registering platform: ' + platformName );
+	console.log( new Date().toTimeString() + 'registering platform: ' + platformName );
 	var currentPlatform = platforms[ platformName ],
 		platformSettings = settings( platformName ),
 		globalSettings = settings( 'global' );
@@ -199,14 +199,16 @@ function ready() {
 	console.log( 'device.js ready', devices );
 	events.process( 'action', onAction );
 
-	//console.log( deviceSelector( 'room:Kitchen' ));
-	/*setTimeout( function () {
-	 console.log( 'Turning on all devices tagged Kitchen' );
-	 deviceSelector( 'room:Kitchen' ).forEach( function ( device ){
-	 platform[ device.platform ]['on']( device.nativeId );
-	 console.log( 'turning on', device)
-	 });
-	 }, 2000 );*/
+	// console.log( deviceSelector( 'room:Kitchen' ));
+	/*
+	setTimeout( function() {
+		console.log( 'Turning on all devices tagged Kitchen' );
+		deviceSelector( 'room:Kitchen' ).forEach( function( device ) {
+			platform[ device.platform ]['on']( device.nativeId );
+			console.log( 'turning on', device );
+		});
+	}, 2000 );
+	*/
 }
 
 function init() {
@@ -214,13 +216,13 @@ function init() {
 
 	Promise.all( [
 		db.get( 'platforms' ).then( registerPlatforms ),
-		db.get( 'devices' ).then( function ( data ) {
+		db.get( 'devices' ).then( function( data ) {
 			devices = data;
 		} ),
-		db.get( 'zones' ).then( function ( data ) {
+		db.get( 'zones' ).then( function( data ) {
 			zones = data;
 		} ),
-		db.get( 'rooms' ).then( function ( data ) {
+		db.get( 'rooms' ).then( function( data ) {
 			rooms = data;
 		} )
 	] ).then( ready );
