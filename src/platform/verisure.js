@@ -1,10 +1,10 @@
-// TODO remove need here
+'use strict';
 var kue = require( 'kue' ),
 	events = kue.createQueue( { prefix: 'home' } ),
 	verisureApi;
 
 function ready() {
-	verisureApi.on( 'alarmChange', function ( data ) {
+	verisureApi.on( 'alarmChange', function( data ) {
 		console.log( 'on alarmStatus', data );
 		events.create( 'event', {
 			id: 'made-up-id',
@@ -16,9 +16,9 @@ function ready() {
 	console.log( 'verisure ready.' );
 }
 
-function init( globalSettings, providerSettings ) {
-	var username = providerSettings.get( 'username' ),
-		password = providerSettings.get( 'password' );
+function init( globalSettings, platformSettings ) {
+	var username = platformSettings.get( 'username' ),
+		password = platformSettings.get( 'password' );
 
 	verisureApi = require( 'verisure-api' ).setup( {
 		username: username,
