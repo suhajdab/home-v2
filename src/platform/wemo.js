@@ -12,7 +12,7 @@ var devices = [];
  * @returns {*|boolean}
  */
 function isWemo( device ) {
-	return device.firmwareVersion && (/^(WeMo)/).test( device.firmwareVersion );
+	return device.firmwareVersion && /^(WeMo)/.test( device.firmwareVersion );
 }
 
 /**
@@ -20,16 +20,16 @@ function isWemo( device ) {
  * @returns {Promise}
  */
 function getDevices() {
-	return new Promise( function ( resolve, reject ) {
+	return new Promise( function( resolve, reject ) {
 		// TODO think of a better way to wait for ready
-		setTimeout( function () {
+		setTimeout( function() {
 			resolve( standardizeDevices( devices ) );
 		}, 1000 );
 	} );
 }
 
 function standardizeDevices( devices ) {
-	return devices.map( function ( device ) {
+	return devices.map( function( device ) {
 		return {
 			label: device.friendlyName,
 			nativeId: device.serialNumber,
@@ -41,7 +41,7 @@ function standardizeDevices( devices ) {
 
 function findDeviceByNativeId( id ) {
 	var result;
-	devices.forEach( function ( device ) {
+	devices.forEach( function( device ) {
 		if ( device.serialNumber == id ) result = device;
 	} );
 	return result;
@@ -63,13 +63,13 @@ function ready() {
 
 function discover() {
 	var discovery = wemore.Discover()
-		.on( 'device', function ( device ) {
+		.on( 'device', function( device ) {
 			// seems to discover hue hub too, so gotta filter
 			if ( isWemo( device ) ) devices.push( device );
 		} );
 
 	// not quite sure how to ensure discovery ended
-	setTimeout( function () {
+	setTimeout( function() {
 		discovery.close();
 		ready();
 	}, 1000 );
