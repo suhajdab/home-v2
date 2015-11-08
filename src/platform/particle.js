@@ -1,4 +1,3 @@
-/*jshint node: true*/
 var spark = require( 'spark' );
 require( 'es6-promise' ).polyfill();
 
@@ -6,8 +5,8 @@ require( 'es6-promise' ).polyfill();
  * Gets a variable value for the device
  * device.getVariable('temp').then()
  */
-//TODO: create device object to pass back to devices.js
-//TODO: events to listeners
+// TODO: create device object to pass back to devices.js
+// TODO: events to listeners
 
 /**
  * Function parses response from lifx's cloud api
@@ -15,7 +14,7 @@ require( 'es6-promise' ).polyfill();
  * @returns {Promise}
  */
 function parseDevices( err, data ) {
-	var newObj = data.map( function ( obj ) {
+	var newObj = data.map( function( obj ) {
 		obj = obj.attributes;
 		return {
 			nativeId: obj.id,
@@ -24,12 +23,12 @@ function parseDevices( err, data ) {
 			platform: 'particle' // TODO: remove hardcoded platform
 		};
 	} );
-//	return Promise.resolve( newObj );
-	console.log(newObj);
+	// return Promise.resolve( newObj );
+	console.log( newObj );
 }
 
 function onGotEvent() {
-	//console.log( 'Event: ' + JSON.stringify( data ));
+	// console.log( 'Event: ' + JSON.stringify( data ));
 	console.log( arguments );
 }
 

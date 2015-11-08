@@ -33,22 +33,22 @@ var apiUrl = 'https://api.lifx.com/v1beta1/lights',
 	token,
 	cachedState = {};
 
-//var signature = {
-//	platform: 'lifx',
-//	type: 'lamp',
-//	service: {
-//		on: [
-//			'newBulb',
-//			'stateChange'
-//		],
-//		set: [
-//			{ on: { params: [ 'id', 'duration' ] } },
-//			{ off: { params: [ 'id', 'duration' ] } },
-//			{ setColor: {} },
-//			{ setWhite: {} }
-//		]
-//	}
-//};
+// var signature = {
+// 	platform: 'lifx',
+// 	type: 'lamp',
+// 	service: {
+// 		on: [
+// 			'newBulb',
+// 			'stateChange'
+// 		],
+// 		set: [
+// 			{ on: { params: [ 'id', 'duration' ] } },
+// 			{ off: { params: [ 'id', 'duration' ] } },
+// 			{ setColor: {} },
+// 			{ setWhite: {} }
+// 		]
+// 	}
+// };
 
 // TODO: consider implementing single string colors via api, ex: purple
 // TODO: reachability handling? http://api.developer.lifx.com/docs/reachability
@@ -78,7 +78,7 @@ function apiFetch( url, data, method ) {
 		method: method,
 		headers: headers,
 		body: JSON.stringify( data )
-	} ).then( function ( res ) {
+	} ).then( function( res ) {
 //		console.log( res.ok );
 //		console.log( res.status );
 //		console.log( res.statusText );
@@ -94,7 +94,7 @@ function apiFetch( url, data, method ) {
  * @returns {Promise}
  */
 function parseLightStates( states ) {
-	var newObj = states.map( function ( obj ) {
+	var newObj = states.map( function( obj ) {
 		var tag = obj.group && obj.group.name ? 'room:' + obj.group.name : '';
 		return {
 			nativeId: obj.id,
@@ -148,7 +148,7 @@ function addDuration( stateObj, duration ) {
 function findByNativeId( nativeId, deviceArray ) {
 	var i, obj;
 
-	for ( i = 0; obj = deviceArray[ i ]; i++ ) {
+	for ( i = 0; ( obj = deviceArray[ i ] ); i++ ) {
 		if ( obj.nativeId === nativeId ) {
 			return obj;
 		}
@@ -163,12 +163,12 @@ function findByNativeId( nativeId, deviceArray ) {
  */
 // TODO: rewrite with [].reduce to return modified states, then handle that array
 function diffState( cachedStates, currentStates ) {
-	//TODO detect add/remove of devices
+	// TODO detect add/remove of devices
 	var i,
 		cached,
 		current;
 
-	for ( i = 0; current = currentStates[ i ]; i++ ) {
+	for ( i = 0; ( current = currentStates[ i ] ); i++ ) {
 		cached = findByNativeId( current.nativeId, cachedStates );
 
 		if ( JSON.stringify( cached ) !== JSON.stringify( current ) ) {
@@ -186,10 +186,10 @@ function diffState( cachedStates, currentStates ) {
 function pollStatus() {
 	apiFetch( '/all' )
 		.then( parseLightStates )
-		.then( function ( states ) {
+		.then( function( states ) {
 			diffState( cachedState, states );
 //		console.log( states );
-		} ).then( function () {
+		} ).then( function() {
 			setTimeout( pollStatus, pollTimeout );
 		} );
 }
@@ -232,7 +232,7 @@ function setState( id, fn, stateObj, duration, powerOn ) {
 	id = id || 'all';
 	fn = fn || 'color';
 	if ( typeof powerOn !== 'undefined' ) {
-		stateObj.power_on = powerOn; //eslint-disable-line camelcase
+		stateObj.power_on = powerOn; // eslint-disable-line camelcase
 	}
 	addDuration( stateObj, duration );
 	return apiFetch( '/' + id + '/' + fn, stateObj, 'put' );

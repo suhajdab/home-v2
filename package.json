@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "start": "./node_modules/.bin/nf start",
-    "lint": "./node_modules/.bin/eslint --ignore-pattern node_modules **/*.js"
+    "lint": "./node_modules/.bin/eslint --ignore-pattern node_modules '**/*.js'"
   },
   "repository": {
     "type": "git",

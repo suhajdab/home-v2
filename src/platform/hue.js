@@ -53,9 +53,9 @@ var deviceStates = {};
 // TODO: expose native scheduling api
 // TODO: discover hub automatically
 
-//api.getFullState().then(function(data){
-//	console.log(JSON.stringify(data, null, "\t"));
-//}).catch(console.log.bind(console));
+// api.getFullState().then( function( data ) {
+// 	console.log(JSON.stringify( data, null, "\t") );
+// } ).catch(console.log.bind( console) );
 
 
 /* UTILITY */
@@ -82,16 +82,16 @@ function isStateChanged( oldData, newData ) {
  */
 function filterObject( obj, keys ) {
 	var newObj = {};
-	Object.keys( obj ).forEach( function ( key ) {
-		if ( ~keys.indexOf( key )) newObj[ key ] = obj[ key ];
-	});
+	Object.keys( obj ).forEach( function( key ) {
+		if ( ~keys.indexOf( key ) ) newObj[ key ] = obj[ key ];
+	} );
 	return newObj;
 }
 
 
 /* PRIVATE */
 
-function getDeviceStates () {
+function getDeviceStates() {
 }
 
 /**
@@ -115,7 +115,7 @@ function convertToHSB( hsl ) {
  * @param kelvin
  * @returns {number}
  */
-function convertToMireds ( kelvin ) {
+function convertToMireds( kelvin ) {
 	var mireds = 1000000 / kelvin;
 	return mireds;
 }
@@ -131,10 +131,10 @@ function addDuration( stateObj, duration ) {
  * Returns an array of known devices with id & label
  * @returns {Promise}
  */
-function getAllLights () {
+function getAllLights() {
 	// TODO: error handling when no network, devices not found
-	return api.lights().then( function ( result ) {
-		var newObj = result.lights.map( function ( obj ) {
+	return api.lights().then( function( result ) {
+		var newObj = result.lights.map( function( obj ) {
 			return {
 				nativeId: obj.id,
 				label   : obj.name,
@@ -143,26 +143,26 @@ function getAllLights () {
 			};
 		} );
 		return Promise.resolve( newObj );
-	}).catch( function ( err ) {
-		throw new Error ( err );
-	});
+	} ).catch( function( err ) {
+		throw new Error( err );
+	} );
 }
 
-function getState ( id ) {
+function getState( id ) {
 	return api.lightStatus( id );
 }
 
-function setState ( id, stateObj, duration ) {
+function setState( id, stateObj, duration ) {
 	addDuration( stateObj, duration );
 	return api.setLightState( id , stateObj );
 }
 
-function on ( id, duration ) {
+function on( id, duration ) {
 	var stateObj = { on: true };
 	return setState( id, stateObj, duration );
 }
 
-function off ( id, duration ) {
+function off( id, duration ) {
 	var stateObj = { on: false };
 	return setState( id, stateObj, duration );
 }
@@ -176,7 +176,7 @@ function off ( id, duration ) {
  * @param {Number} hsl.l - luminance ( 0 - 100 )
  * @returns {Promise}
  */
-function setColor ( id, hsl, duration ) {
+function setColor( id, hsl, duration ) {
 	var stateObj = convertToHSB( hsl );
 	return setState( id, stateObj, duration );
 }
@@ -189,7 +189,7 @@ function setColor ( id, hsl, duration ) {
  * @param {Number} brightness - brightness of lamp ( 0 - 100 )
  * @returns {Promise}
  */
-function setWhite ( id, kelvin, brightness, duration ) {
+function setWhite( id, kelvin, brightness, duration ) {
 	var stateObj = {
 		ct: convertToMireds( kelvin ),
 		bri: brightness * 2.54
@@ -197,7 +197,7 @@ function setWhite ( id, kelvin, brightness, duration ) {
 	return setState( id, stateObj, duration );
 }
 
-function init ( globalSettings, platformSettings ) {
+function init( globalSettings, platformSettings ) {
 	var host = platformSettings.get( 'host' ),
 		user = platformSettings.get( 'username' );
 	api = new HueApi( host, user );
@@ -215,4 +215,4 @@ module.exports = {
 	init      : init
 };
 
-//getAllLights().then( console.log.bind(console) );
+// getAllLights().then( console.log.bind(console) );

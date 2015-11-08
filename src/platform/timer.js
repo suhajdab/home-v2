@@ -7,7 +7,7 @@ var CronJob = require( 'cron' ).CronJob;
 var db = require( './../database-layer.js' );
 var uuid = require( 'node-uuid' );
 var kue = require( 'kue' ),
-	events = kue.createQueue({ prefix: 'home' });
+	events = kue.createQueue( { prefix: 'home' } );
 
 
 var timers;
@@ -24,8 +24,8 @@ var timers;
 	 *: Day of Week: 0-6
 
 
-	 var CronJob = require('cron').CronJob;
-	 var job = new CronJob({
+	 var CronJob = require( 'cron' ).CronJob;
+	 var job = new CronJob( {
 		 cronTime: '00 30 11 * * 1-5',
 		 onTick: function() {
 			 // Runs every weekday (Monday through Friday)
@@ -33,7 +33,7 @@ var timers;
 			 // or Sunday.
 		 },
 		 start: false
-	 });
+	 } );
 
 	 job.start() & job.stop()
  */
@@ -46,9 +46,9 @@ var timers;
  */
 function filterObject( obj, keys ) {
 	var newObj = {};
-	Object.keys( obj ).forEach( function ( key ) {
-		if ( ~keys.indexOf( key )) newObj[ key ] = obj[ key ];
-	});
+	Object.keys( obj ).forEach( function( key ) {
+		if ( ~keys.indexOf( key ) ) newObj[ key ] = obj[ key ];
+	} );
 	return newObj;
 }
 
@@ -57,74 +57,77 @@ function filterObject( obj, keys ) {
  * @param {Array} timers - Array of timer objects
  * @returns {Array}
  */
-function filterBeforeSave ( timers ) {
+function filterBeforeSave( timers ) {
 	var keys = [ 'label', 'cronTime', 'repeat', 'active', 'id' ];
-	return timers.map( function ( timer ) {
+	return timers.map( function( timer ) {
 		return filterObject( timer, keys );
-	});
+	} );
 }
 
-function triggerTimer () {
+function triggerTimer() {
 	console.log( 'timer triggered', this );
 	events.create( 'event', {
 		id    : this.id,
 		name  : this.name,
 		title : this.name + ' triggered',
 		source: 'timer'
-	}).priority( 'high' ).attempts( 5 ).save();
+	} ).priority( 'high' ).attempts( 5 ).save();
 
 	if ( !this.repeat ) disable( this );
 }
 
 function save() {
-	return db.set( 'timers', filterBeforeSave( timers )).catch( console.error.bind( console ));// TODO: error logging
+	// TODO: error logging
+	return db.set( 'timers', filterBeforeSave( timers ) ).catch( console.error.bind( console ) );
 }
 
-function create ( timer ) {
+function create( timer ) {
 	timer.id = uuid.v4();
 	timers.push( timer );
 	setup( timer );
 	save();
-	return timer.id
+	return timer.id;
 }
 
-function setup ( timer ) {
+function setup( timer ) {
 	if ( !timer.enabled ) return;
 	enable( timer );
 }
 
-function enable ( timer ) {
+function enable( timer ) {
 	timer.enabled = true;
-	timer.cron = new CronJob({
+	timer.cron = new CronJob( {
 		cronTime: timer.cronTime,
 		onTick: triggerTimer.bind( timer ),
 		start: true
-	});
+	} );
 }
 
-function disable ( timer ) {
+function disable( timer ) {
 	timer.enabled = false;
 	timer.cron.stop(); // is this even needed?
 	delete timer.cron;
 	save();
 }
 
-function ready ( timerData ) {
+function ready( timerData ) {
 	console.log( 'timers ready. loaded ' + timerData.length + ' timers.' );
 	timers = timerData || [];
 	timers.forEach( setup );
 
-	/*create({
+	/*
+	create( {
 		label: "Hubby's weekday alarm",
 	//	cronTime: "00 30 06 *  * 1-5",
 		cronTime: "00 48 08 *  * *",
 		repeat: true,
 		enabled: true
-	});*/
+	} );
+	*/
 
 }
 
-function init () {
+function init() {
 	db.get( 'timers' ).then( ready );
 }
 

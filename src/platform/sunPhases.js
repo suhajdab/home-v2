@@ -54,7 +54,7 @@ function generateCronJobs( events ) {
 		}
 	}
 	// test event 5 sec in the future
-	//addCronJob({ name: 'test event', date: new Date( Date.now() + 5 * 1000 ) });
+	// addCronJob({ name: 'test event', date: new Date( Date.now() + 5 * 1000 ) });
 }
 
 /**
@@ -77,7 +77,7 @@ function ready() {
 /**
  * Function sets up a repeating cron job to generate sun phase jobs each day, and does generation for current day
  */
-function init( globalSettings/*, platformSettings */ ) {
+function init( globalSettings/* , platformSettings */ ) {
 	'use strict';
 
 	geolocation = globalSettings.get( 'geolocation' );

@@ -27,7 +27,7 @@ function isWeatherChanged( oldData, newData ) {
  */
 function filterObject( obj, keys ) {
 	var newObj = {};
-	Object.keys( obj ).forEach( function ( key ) {
+	Object.keys( obj ).forEach( function( key ) {
 		if ( ~keys.indexOf( key ) ) newObj[ key ] = obj[ key ];
 	} );
 	return newObj;
@@ -35,8 +35,8 @@ function filterObject( obj, keys ) {
 
 // read location data from system.js
 function fetchWeatherData() {
-	return new Promise( function ( resolve, reject ) {
-		forecast.get( [ geolocation.lat, geolocation.long ], true, function ( err, weather ) {
+	return new Promise( function( resolve, reject ) {
+		forecast.get( [ geolocation.lat, geolocation.long ], true, function( err, weather ) {
 			if ( err ) return reject( err );
 			else return resolve( weather );
 		} );
@@ -45,13 +45,13 @@ function fetchWeatherData() {
 
 function storeData( data ) {
 	console.log( 'forecast got data: "', data.daily.summary, '". next refresh on ' + new Date( data.expires ) );
-	if ( isWeatherChanged( cachedData, data ) ) dispatch( filterObject( data, [ 'currently', 'daily', 'hourly' ] ) );
+	// if ( isWeatherChanged( cachedData, data ) ) dispatch( filterObject( data, [ 'currently', 'daily', 'hourly' ] ) );
 	cachedData = data;
 	return Promise.resolve( true );
 }
 
 function log( obj ) {
-	console.log( JSON.stringify( obj, null, "\t" ) );
+	console.log( JSON.stringify( obj, null, '\t' ) );
 }
 
 function waitAndRefresh() {
