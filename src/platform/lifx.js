@@ -23,7 +23,6 @@ var pollTimeout = 500,
  * @param light - discovered light instance
  */
 function onNewLight( light ) {
-//	console.log( 'New lifx light found. ID:' + light.id + ', IP:' + light.address + ':' + light.port );
 	getStatePromise( light ).then( parseLightStates ).then( storeLight );
 }
 
@@ -36,10 +35,10 @@ function getStatePromise( light ) {
 	return new Promise( function ( resolve, reject ) {
 		light.getState( function ( err, info ) {
 			if ( err ) {
-				reject( err );
+				return reject( err );
 			}
+			if ( !info ) return reject( new Error('Empty light info object') );
 			info.id = light.id;
-			console.log( 'light state', info );
 			resolve( info );
 		} );
 	} );
@@ -73,7 +72,7 @@ function parseLightStates( obj ) {
 		label: obj.label,
 		type: 'light',
 		platform: 'lifx', // TODO: remove hardcoded platform,
-		connected: obj.connected,
+//		connected: obj.connected,
 		power: obj.power,
 		color: obj.color,
 		tags: [ tag ]
@@ -132,23 +131,23 @@ function diffState( cachedStates, currentStates ) {
 		cached = findByNativeId( current.nativeId, cachedStates );
 
 		if ( JSON.stringify( cached ) !== JSON.stringify( current ) ) {
-			console.log( current );
+			console.log( 'difference' );
+			console.log( JSON.stringify( cached ) );
+			console.log( JSON.stringify( current ) );
 		}
 	}
 
-	cachedState = objectAssign( {}, currentStates );
+	cachedState = currentStates.slice( 0 );
 }
 
 /**
  * Function regularly polls lights' states to make sure external changes are kept track of
  */
-// TODO: polling interval should be a) dynamically adjusted based on remaining API quota b) using 2nd token when 1st is spent
 function pollStatus() {
 	getAllLightStates()
-		.then( parseLightStates )
+	//		.then( parseLightStates )
 		.then( function ( states ) {
 			diffState( cachedState, states );
-			console.log( states );
 		} ).then( function () {
 		setTimeout( pollStatus, pollTimeout );
 	} );
@@ -223,7 +222,7 @@ function setWhite( id, kelvin, brightness, duration, powerOn ) {
 function init( globalSettings, platformSettings ) {
 	client.init();
 	client.on( 'light-new', onNewLight );
-//	pollStatus();
+	setTimeout( pollStatus, 5000 );
 	console.log( 'lifx ready' );
 }
 
