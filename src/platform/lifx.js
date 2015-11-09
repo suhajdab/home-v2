@@ -1,90 +1,61 @@
-/*
- Lifx API
+'use strict';
 
- base url: https://api.lifx.com/v1beta1/lights
+var LifxClient = require( 'node-lifx' ).Client;
+var client = new LifxClient();
 
- GET /all - Lists all lights
- GET /{selector} - Lists lights matching selector
- PUT /{selector}/power/- Turns lights matching selector on
- PUT /lights/{selector}/toggle - Toggle lights matching selector. If any lights in selector is on, it will turn them off
- PUT /:selector/color
-
- '{"hue": 120, "saturation": 1, "brightness": 1, "duration":2}'
-
- Hue: 0-360
- Saturation: 0-1
- Brightness: 0-1
- Kelvin: 2500-9000. Defaults to 3500 (optional)
- Duration in seconds ( or m or h ) (optional)
-
- */
 require( 'es6-promise' ).polyfill();
 
 //	color conversion library
 var Colr = require( 'Colr' ),
-	fetch = require( 'node-fetch' ),
 	objectAssign = require( 'object-assign' );
 
-var apiUrl = 'https://api.lifx.com/v1beta1/lights',
-	rateLimitRemainingHeader = 'X-RateLimit-Remaining',	// Number of requests you are allowed to make in the current 60 second window.
-	rateLimitResetHeader = 'X-RateLimit-Reset', 		// Unix timestamp for when the next window begins.
-	pollTimeout = 2 * 1000,								// 60 requests allowed in 60 sec. Polling every 2nd sec leaves half
-	pollRetries = 10,
-	token,
-	cachedState = {};
-
-// var signature = {
-// 	platform: 'lifx',
-// 	type: 'lamp',
-// 	service: {
-// 		on: [
-// 			'newBulb',
-// 			'stateChange'
-// 		],
-// 		set: [
-// 			{ on: { params: [ 'id', 'duration' ] } },
-// 			{ off: { params: [ 'id', 'duration' ] } },
-// 			{ setColor: {} },
-// 			{ setWhite: {} }
-// 		]
-// 	}
-// };
+var pollTimeout = 500,
+	defaultDuration = 5000,
+	cachedState = [];
 
 // TODO: consider implementing single string colors via api, ex: purple
 // TODO: reachability handling? http://api.developer.lifx.com/docs/reachability
 
 /* PRIVATE */
+
 /**
- * Fetch promise generator
- * @param {String} url
- * @param {Object} data - parameters to send to server
- * @param {String} method - request method
+ * Event handler for light discovery: parses light data, and caches
+ * @param light - discovered light instance
+ */
+function onNewLight( light ) {
+	getStatePromise( light ).then( parseLightStates ).then( storeLight );
+}
+
+/**
+ * Async requests current light state
+ * @param light
  * @returns {Promise}
  */
-// TODO: need to handle 4xx, 5xx responses (they don't reject fetch promise)
-function apiFetch( url, data, method ) {
-	'use strict';
+function getStatePromise( light ) {
+	return new Promise( function ( resolve, reject ) {
+		light.getState( function ( err, info ) {
+			if ( err ) {
+				return reject( err );
+			}
+			if ( !info ) return reject( new Error('Empty light info object') );
+			info.id = light.id;
+			resolve( info );
+		} );
+	} );
+}
 
-	var headers = {
-		'Content-Type': 'application/json',
-		'Authorization': 'Bearer ' + token
+function storeLight( data ) {
+	cachedState.push( data );
+}
 
-	};
-	url = apiUrl + url;
-	data = data || {};
-	method = method || 'get';
-
-	return fetch( url, {
-		method: method,
-		headers: headers,
-		body: JSON.stringify( data )
-	} ).then( function( res ) {
-//		console.log( res.ok );
-//		console.log( res.status );
-//		console.log( res.statusText );
-//		console.log( res.headers.get( rateLimitResetHeader ) );
-//		console.log( res.headers.get( rateLimitRemainingHeader ) );
-		return res.json();
+function getLightById( id ) {
+	return new Promise( function ( resolve, reject ) {
+		var light = client.light( identifier );
+		if ( !light ) {
+			reject( new Error( 'Lifx light with ' + id + ' not found!' ) );
+		} else {
+			resolve( light );
+		}
 	} );
 }
 
@@ -93,21 +64,19 @@ function apiFetch( url, data, method ) {
  * @param {Object} states  raw json response from api
  * @returns {Promise}
  */
-function parseLightStates( states ) {
-	var newObj = states.map( function( obj ) {
-		var tag = obj.group && obj.group.name ? 'room:' + obj.group.name : '';
-		return {
-			nativeId: obj.id,
-			label: obj.label,
-			type: 'light',
-			platform: 'lifx', // TODO: remove hardcoded platform,
-			connected: obj.connected,
-			power: obj.power,
-			color: obj.color,
-			brightness: obj.brightness,
-			tags: [ tag ]
-		};
-	} );
+function parseLightStates( obj ) {
+	var newObj,
+		tag = obj.group && obj.group.name ? 'room:' + obj.group.name : '';
+	newObj = {
+		nativeId: obj.id,
+		label: obj.label,
+		type: 'light',
+		platform: 'lifx', // TODO: remove hardcoded platform,
+//		connected: obj.connected,
+		power: obj.power,
+		color: obj.color,
+		tags: [ tag ]
+	};
 	return Promise.resolve( newObj );
 }
 
@@ -120,23 +89,13 @@ function parseLightStates( states ) {
  * @returns {{hue: (hsv.h|*), saturation: number, brightness: number}}
  */
 function convertToHSB( hsl ) {
-	'use strict';
-
 	var hsv = Colr.fromHslObject( hsl ).toHsvObject(),
 		HSB = {
 			hue: hsv.h, // 0 - 360 degrees => 0 - 65534
-			saturation: hsv.s / 100,
-			brightness: hsv.v / 100
+			saturation: hsv.s,
+			brightness: hsv.v
 		};
 	return HSB;
-}
-
-function addDuration( stateObj, duration ) {
-	'use strict';
-
-	if ( duration !== undefined ) {
-		stateObj.duration = duration;
-	}
 }
 
 /**
@@ -148,7 +107,7 @@ function addDuration( stateObj, duration ) {
 function findByNativeId( nativeId, deviceArray ) {
 	var i, obj;
 
-	for ( i = 0; ( obj = deviceArray[ i ] ); i++ ) {
+	for ( i = 0; obj = deviceArray[ i ]; i++ ) {
 		if ( obj.nativeId === nativeId ) {
 			return obj;
 		}
@@ -163,35 +122,35 @@ function findByNativeId( nativeId, deviceArray ) {
  */
 // TODO: rewrite with [].reduce to return modified states, then handle that array
 function diffState( cachedStates, currentStates ) {
-	// TODO detect add/remove of devices
+	//TODO detect add/remove of devices
 	var i,
 		cached,
 		current;
 
-	for ( i = 0; ( current = currentStates[ i ] ); i++ ) {
+	for ( i = 0; current = currentStates[ i ]; i++ ) {
 		cached = findByNativeId( current.nativeId, cachedStates );
 
 		if ( JSON.stringify( cached ) !== JSON.stringify( current ) ) {
-			console.log( current );
+			console.log( 'difference' );
+			console.log( JSON.stringify( cached ) );
+			console.log( JSON.stringify( current ) );
 		}
 	}
 
-	cachedState = objectAssign( {}, currentStates );
+	cachedState = currentStates.slice( 0 );
 }
 
 /**
  * Function regularly polls lights' states to make sure external changes are kept track of
  */
-// TODO: polling interval should be a) dynamically adjusted based on remaining API quota b) using 2nd token when 1st is spent
 function pollStatus() {
-	apiFetch( '/all' )
-		.then( parseLightStates )
-		.then( function( states ) {
+	getAllLightStates()
+	//		.then( parseLightStates )
+		.then( function ( states ) {
 			diffState( cachedState, states );
-//		console.log( states );
-		} ).then( function() {
-			setTimeout( pollStatus, pollTimeout );
-		} );
+		} ).then( function () {
+		setTimeout( pollStatus, pollTimeout );
+	} );
 }
 
 /* PUBLIC */
@@ -200,131 +159,79 @@ function pollStatus() {
  *
  * @returns {Promise}
  */
-function getAllLights() {
-	'use strict';
-
-	return apiFetch( '/all' )
-		.then( parseLightStates );
+function getAllLightStates() {
+	var statePromises = client.lights().map( function ( light ) {
+		return getStatePromise( light ).then( parseLightStates );
+	} );
+	return Promise.all( statePromises );
 }
 
 /**
+ * Turns on light with specified id
  *
  * @param id
- * @returns {Promise}
- */
-function getState( id ) {
-	'use strict';
-
-	return apiFetch( id );
-}
-
-/**
- *
- * @param id
- * @param fn
- * @param stateObj
- * @param duration
- * @returns {Promise}
- */
-function setState( id, fn, stateObj, duration, powerOn ) {
-	'use strict';
-
-	id = id || 'all';
-	fn = fn || 'color';
-	if ( typeof powerOn !== 'undefined' ) {
-		stateObj.power_on = powerOn; // eslint-disable-line camelcase
-	}
-	addDuration( stateObj, duration );
-	return apiFetch( '/' + id + '/' + fn, stateObj, 'put' );
-}
-
-/**
- *
- * @param id
- * @param duration
+ * @param {Number} [duration=defaultDuration]
  * @returns {Promise}
  */
 function on( id, duration ) {
-	'use strict';
-
-	var stateObj = { state: 'on' };
-	return setState( id, 'power', stateObj, duration );
+	duration = duration || defaultDuration;
+	client.light( id ).on( duration );
 }
 
 /**
+ * Turns off light with specified id
  *
  * @param id
- * @param duration
- * @returns {Promise}
+ * @param {Number} [duration=defaultDuration]
  */
 function off( id, duration ) {
-	'use strict';
-
-	var stateObj = { state: 'off' };
-	return setState( id, 'power', stateObj, duration );
+	duration = duration || defaultDuration;
+	client.light( id ).off( duration );
 }
 
 /**
  * Set color of lamp with specified id
- *
- * Request Data
- *    {
- *		"color": "hue:120 saturation:1.0 brightness:0.5",
- *		"duration": 2,
- *		"power_on": true
- *	}
  *
  * @param {String} id
  * @param {Object} hsl - HSL color
  * @param {Number} hsl.h - hue ( 0 - 360 )
  * @param {Number} hsl.s - saturation ( 0 - 100 )
  * @param {Number} hsl.l - luminance ( 0 - 100 )
- * @returns {Promise}
+ * @param {Number} [duration=defaultDuration]
  */
-function setColor( id, hsl, duration, powerOn ) {
-	'use strict';
+function setColor( id, hsl, duration ) {
+	var hsb = convertToHSB( hsl );
+	duration = duration || defaultDuration;
 
-	var hsb = convertToHSB( hsl ),
-		stateObj = {
-			color: 'hue:' + hsb.hue + ' saturation:' + hsb.saturation + ' brightness:' + hsb.brightness,
-			power_on: powerOn || false // eslint-disable-line camelcase
-		};
-	return setState( id, 'color', stateObj, duration );
+	client.light( id ).color( hsb.hue, hsb.saturation, hsb.brightness, 3500, duration );
 }
 
 /**
- *    Set a white color on the lamp with specified id
+ * Set a white color on the lamp with specified id
+ *
  * @param {String} id
  * @param {Number} kelvin - white temperature of lamp ( warm: 2500 - cool: 9000 )
  * @param {Number} brightness - brightness of lamp ( 0 - 100 )
- * @returns {Promise}
+ * @param {Number} [duration=defaultDuration]
  */
-// TODO move brightness math out
 function setWhite( id, kelvin, brightness, duration, powerOn ) {
-	'use strict';
-
-	var stateObj = {
-		color: 'brightness:' + ( brightness / 100 ) + ' kelvin:' + kelvin
-	};
-	return setState( id, 'color', stateObj, duration, powerOn );
+	duration = duration || defaultDuration;
+	client.light( id ).color( 0, 0, brightness, kelvin, duration );
 }
 
 function init( globalSettings, platformSettings ) {
-	'use strict';
-
-	token = platformSettings.get( 'token' );
-	pollStatus();
-
+	client.init();
+	client.on( 'light-new', onNewLight );
+	setTimeout( pollStatus, 5000 );
 	console.log( 'lifx ready' );
 }
 
 module.exports = {
-	// should return all known devices
-	getDevices: getAllLights,
-	getState: getState,
 	setColor: setColor,
 	setWhite: setWhite,
 	on: on,
 	off: off,
 	init: init
 };
+
+init();
