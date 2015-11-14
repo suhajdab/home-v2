@@ -29,6 +29,7 @@
     "object-assign": "^4.0.1",
     "redis": "^0.12.1",
     "restify": "^2.8.3",
+    "rethinkdb": "^2.2.0",
     "spark": "^0.4.0",
     "suncalc": "~1.6.0",
     "verisure-api": "git://github.com/suhajdab/verisure-api.git#master",

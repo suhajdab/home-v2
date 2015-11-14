@@ -10,3 +10,4 @@ npm-debug.log
 providers/verisure.js
 
 projectFilesBackup/*
+rethinkdb_data
