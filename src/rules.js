@@ -3,16 +3,24 @@
  */
 
 require( 'es6-promise' ).polyfill();
-var uuid = require( 'node-uuid' );
-var objectAssign = require( 'object-assign' );
-var db = require( './database-layer.js' );
-var kue = require( 'kue' ),
-	events = kue.createQueue( { prefix: 'home' } );
+var uuid = require( 'node-uuid' ),
+	objectAssign = require( 'object-assign' ),
+	dnode = require( 'dnode' ),
 
-// TODO: keep system state in db??
-var state = {};
+	rulesDB = require( './database-layer.js' )( 'rules', 'id' ),
+	eventsDB = require( './database-layer.js' )( 'events', 'id' ),
 
-var rules = [];
+	devicesApi,
+	rules = [];
+
+// TODO: multiple conditions
+
+function validateConditions( data ) {
+	for ( var i = 0, rule; ( rule = rules[ i ] ); i++ ) {
+		if ( rightConditions( rule.conditions, data ) ) takeAction( rule );
+
+	}
+}
 
 function rightConditions( conditions, data ) {
 	for ( var i = 0, condition; ( condition = conditions[ i ] ); i++ ) {
@@ -23,39 +31,43 @@ function rightConditions( conditions, data ) {
 	return true;
 }
 
-function takeAction( rule, done ) {
+function takeAction( rule ) {
 	console.log( 'takeAction', arguments );
 	events.create( 'action', {
 		deviceSelector: rule.deviceSelector,
-		service: rule.service,
+		command: rule.command,
 		params: rule.params,
 		title: 'Setting ' + rule.deviceSelector + ' to ' + rule.service
-	} ).save();
+	} );
+	console.log( 'taking action from rule', rule );
 }
 
-function onEvent( event, done ) {
-	var data = event.data;
-
-	console.log( 'onEvent', data );
-	for ( var i = 0, rule; ( rule = rules[ i ] ); i++ ) {
-		if ( rightConditions( rule.conditions, data ) ) takeAction( rule );
-	}
-
-	done();
+function onChanges( err, cursor ) {
+//	var data = event.data;
+	cursor.map( function( change ) {
+		return change.new_val;
+	} ).each( validateConditions );
 }
 
 function ready() {
-	events.process( 'event', onEvent );
+//	eventsDB.subscribe( onChanges );
 	console.log( 'rules.js', 'ready', JSON.stringify( rules, null, '\t' ) );
 //	takeAction({deviceSelector:'zone:garden', service: 'off'});
 
 //	create( [{ source: 'verisure:alarm', status: 'armed' }], 'zone:house', 'off' );
 //	create( [{ source: 'sun-phase', state: 'dusk' }], 'zone:garden', 'on' );
 //	create( [{ source: 'sun-phase', state: 'dawn' }], 'zone:garden', 'off' );
+
+	devicesApi = dnode.connect( 8787 );
+	devicesApi.on( 'remote', function( remote ) {
+		remote.getPlatforms( function( platforms ) {
+			console.log( JSON.stringify( platforms ) );
+		} );
+	} );
 }
 
 function init() {
-	db.get( 'rules' )
+	rulesDB.get( 'rules' )
 		.then( function( data ) {
 			rules = data || [];
 		} )
@@ -65,7 +77,7 @@ function init() {
 }
 
 /* PUBLIC */
-function create( conditions, deviceSelector, service, params ) {
+function createTimer( conditions, deviceSelector, service, params ) {
 	var rule = {
 		conditions: conditions,
 		deviceSelector: deviceSelector,
@@ -74,7 +86,7 @@ function create( conditions, deviceSelector, service, params ) {
 	};
 	rule.id = uuid.v4();
 	rules.push( rule );
-	db.set( 'rules', rules );
+	rulesDB.set( 'rules', rules );
 	console.log( 'rules.js', 'new rule create', rule );
 	return rule.id;
 }

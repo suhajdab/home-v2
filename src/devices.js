@@ -1,44 +1,72 @@
+'use strict';
+
 require( 'es6-promise' ).polyfill();
 var uuid = require( 'node-uuid' ),
-	kue = require( 'kue' );
+	objectAssign = require( 'object-assign' ),
+	dnode = require( 'dnode' ),
 
-var db = require( './database-layer.js' );
-var settings = require( './settings.js' );
+	settingsDB = require( './database-layer.js' )( 'settings' ),
+	devicesDB = require( './database-layer.js' )( 'devices' ),
+	eventsDB = require( './database-layer.js' )( 'events', 'id' ),
 
-var events = kue.createQueue( { prefix: 'home' } );
+	signature = {
+		settings: {
+			geolocation: {
+				type: 'object',
+				properties: {
+					lat: {
+						type: 'float'
+					},
+					long: {
+						type: 'float'
+					}
+				}
+			},
+			platforms: {
+				type: 'object',
+				properties: {
+					forecast: {
+						type: 'boolean'
+					},
+					hue: {
+						type: 'boolean'
+					},
+					lifx: {
+						type: 'booleam'
+					},
+					sunPhases: {
+						type: 'boolean'
+					},
+					verisure: {
+						type: 'boolean'
+					}
+				}
+			},
+			units: {
+				type: 'string',
+				enum: [ 'imperial', 'metric' ]
+			}
+		}
+	},
 
 /* PRIVATE */
-var platforms = {}; // should come from redis
-var devices = [],
-	rooms = [],
-	zones = [];
+	platforms = {},
+	devices,
+	rooms,
+	zones,
+	remoteApi,
+	remoteApiServer;
 
 // TODO: discover new devices
-
-/* TODO: add listeners to devices
-
- using event emitters
-
- var events = require('events');
- var eventEmitter = new events.EventEmitter();
- http://www.sitepoint.com/nodejs-events-and-eventemitter/
-
- convert from kue to emitter
- events.create( 'event', {
- id    : this.id,
- name  : this.name,
- title : this.name + ' triggered',
- source: 'timer'
- }).save();
- */
+// TODO: lacking required settings, request user to enter, then re-init platform
+// TODO: add listeners to devices
+// TODO: devices should have signatures, not platform
 
 /**
  * Read new room and zone tags, and store unique in db
  * @param {Array} tags
  */
 function importTags( tags ) {
-	'use strict';
-
 	tags.forEach( function( tag ) {
 		var arr = tag.split( ':' );
 		if ( arr.length < 2 ) {
@@ -51,13 +79,11 @@ function importTags( tags ) {
 			zones.push( arr[ 1 ] );
 		}
 	} );
-	db.set( 'rooms', rooms );
-	db.set( 'zones', zones );
+	devicesDB.set( 'rooms', { array: rooms } );
+	devicesDB.set( 'zones', { array: zones } );
 }
 
 function findDeviceByTag( selector ) {
-	'use strict';
-
 	var foundDevices = devices.filter( function( device ) {
 		return ~( device.tags || [] ).indexOf( selector );
 	} );
@@ -67,11 +93,19 @@ function findDeviceByTag( selector ) {
 }
 
 function findDeviceById( id ) {
-	'use strict';
-
 	for ( var i = 0, device; ( device = devices[ i ] ); i++ ) {
 		if ( device.id === id ) {
 			console.log( 'found device by id ' + id, device );
+			return [ device ];
+		}
+	}
+	return false;
+}
+
+function findDeviceByNativeId( id ) {
+	for ( var i = 0, device; ( device = devices[ i ] ); i++ ) {
+		if ( device.nativeId === id ) {
+			console.log( 'found device by nativeId ' + id, device );
 			return device;
 		}
 	}
@@ -79,8 +113,6 @@ function findDeviceById( id ) {
 }
 
 function findDevice( selector ) {
-	'use strict';
-
 	if ( ~selector.indexOf( ':' ) ) {
 		return findDeviceByTag( selector );
 	}
@@ -90,8 +122,6 @@ function findDevice( selector ) {
 }
 
 function concatDevices( accum, sel ) {
-	'use strict';
-
 	var found = findDevice( sel );
 
 	if ( found ) {
@@ -102,8 +132,6 @@ function concatDevices( accum, sel ) {
 }
 
 function deviceSelector( selector ) {
-	'use strict';
-
 	if ( Array.isArray( selector ) ) {
 		return selector.reduce( concatDevices, [] );
 	} else {
@@ -111,21 +139,28 @@ function deviceSelector( selector ) {
 	}
 }
 
-function registerNewDevice( device ) {
-	'use strict';
+function sanitizeDeviceData( deviceData ) {
+	var sanitizedData = {
+		id: uuid.v4(),
+		nativeId: deviceData.nativeId,
+		platform: deviceData.platform,
+		label: deviceData.label,
+		type: deviceData.type
+	};
+	Object.freeze( sanitizedData );
+	return sanitizedData;
+}
 
+function registerNewDevice( device ) {
 	// add home specific id to device
-	device.id = uuid.v4();
-	devices.push( device );
-	db.set( 'devices', devices );
+	devices.push( sanitizeDeviceData( device ) );
+	devicesDB.set( 'devices', { array: devices } );
 	if ( device.tags ) {
 		importTags( device.tags );
 	}
 }
 
 function filterOutRegisteredDevices( device ) {
-	'use strict';
-
 	for ( var d in devices ) {
 		if ( devices[ d ].nativeId === device.nativeId && devices[ d ].platform === device.platform ) {
 			return false;
@@ -135,96 +170,116 @@ function filterOutRegisteredDevices( device ) {
 }
 
 function registerNewDevices( deviceList ) {
-	'use strict';
-
 	deviceList.filter( filterOutRegisteredDevices ).forEach( registerNewDevice );
 }
 
 function onRegistrationError( err ) {
-	'use strict';
-
 	console.error( 'onRegistrationError', this, err ); // TODO: error logging
 }
 
-function registerPlatform( platformName ) {
-	'use strict';
+function generateEmitter( platformName ) {
+	function emit( data ) {
+		// TODO: connect with rules & rest of scripts
+		var defaultData = {
+				timeStamp: Date.now(),
+				platform: platformName
+			},
+			eventData = objectAssign( {}, data, defaultData );
 
-	console.log( new Date().toTimeString() + 'registering platform: ' + platformName );
-	var currentPlatform = platforms[ platformName ],
-		platformSettings = settings( platformName ),
-		globalSettings = settings( 'global' );
-
-	if ( currentPlatform ) {
-		return;
+		eventsDB.insert( eventData );
+		if ( !findDeviceByNativeId( data.nativeId ) ) {
+			registerNewDevice( eventData );
+		}
 	}
 
-	currentPlatform = require( './platform/' + platformName + '.js' );
-	currentPlatform.init( globalSettings, platformSettings );
-	if ( currentPlatform.getDevices ) {
-		currentPlatform
-			.getDevices()
-			.then( registerNewDevices )
-			.catch( onRegistrationError.bind( { platformName: platformName } ) );
-	}
-	platforms[ platformName ] = currentPlatform;
+	return {
+		emit: emit
+	};
 }
 
-function registerPlatforms( platforms ) {
-	'use strict';
+//TODO: validate loaded settings with platform requirements
+function validateSettings( args ) {
+	return Promise.resolve( args );
+}
 
-	platforms.forEach( registerPlatform );
+function registerPlatform( platformName ) {
+	if ( platforms[ platformName ] ) return;
+	console.log( new Date().toTimeString() + ' registering platform: ' + platformName );
+
+	var platformSettings = settingsDB.get( platformName ),
+		globalSettings = settingsDB.get( 'global' ),// TODO: get once!
+		module = require( './platform/' + platformName + '.js' );
+
+	Promise.all( [ platformName, module, globalSettings, platformSettings ] )
+		.then( validateSettings )
+		.then( initPlatform );
+}
+
+function initPlatform( args ) {
+	var platformName = args[ 0 ],
+		module = args[ 1 ],
+		globalSettings = args[ 2 ],
+		platformSettings = args[ 3 ],
+		emitter = generateEmitter( platformName );
+
+	module.init( globalSettings, platformSettings || {}, emitter );
+	platforms[ platformName ] = module;
 }
 
 function registerNewPlatform( platform ) {
-	'use strict';
-
 	registerPlatform( platform );
-	db.set( 'platforms', Object.keys( platforms ) );
+//	devicesDB.set( 'platforms', { array: Object.keys( platforms ) } );
 }
 
-function onAction( event, done ) {
-	'use strict';
-
+function onAction( event ) {
 	// TODO: untangle devices, tags and standardize statuses
 	var data = event.data;
 	console.log( 'onAction', data );
 	var device = deviceSelector( data.deviceSelector );
-	platforms[ device.platform ][ data.service ]( device.nativeId );
-	done();
+//	platforms[ device.platform ][ data.command ]( device.nativeId );
+	platforms[ device.platform ].command.apply( this, Array.concat( data.command, data.params ) );
 }
 
-function ready() {
-	'use strict';
+function triggerCommand( command, params, device ) {
+	platforms[ device.platform ].command.call( this, [ command, params ] );
+}
 
+/* remote api */
+remoteApi = {
+	trigger: function( selector, command, params ) {
+		var targetDevices = deviceSelector( selector );
+		if ( !targetDevices ) return; // TODO: error
+		targetDevices.forEach( triggerCommand.bind( null, command, params ) );
+	},
+	getPlatforms: function( callback ) {
+		callback( platforms );
+	},
+	getDevices: function( callback ) {
+		callback( devices );
+	}
+};
+
+//remoteApiServer = dnode( remoteApi );
+
+/* init */
+function ready( args ) {
+	// TODO: refactor ASA ES6
+	var platforms = args[ 0 ] ? args[ 0 ].array : [];
+	devices = args[ 1 ] ? args[ 1 ].array : [];
+	zones = args[ 2 ] ? args[ 2 ].array : [];
+	rooms = args[ 3 ] ? args[ 3 ].array : [];
+
+	platforms.forEach( registerPlatform );
+//	remoteApiServer.listen( 8787 );
 	console.log( 'device.js ready', devices );
-	events.process( 'action', onAction );
-
-	// console.log( deviceSelector( 'room:Kitchen' ));
-	/*
-	setTimeout( function() {
-		console.log( 'Turning on all devices tagged Kitchen' );
-		deviceSelector( 'room:Kitchen' ).forEach( function( device ) {
-			platform[ device.platform ]['on']( device.nativeId );
-			console.log( 'turning on', device );
-		});
-	}, 2000 );
-	*/
 }
 
 function init() {
-	'use strict';
-
 	Promise.all( [
-		db.get( 'platforms' ).then( registerPlatforms ),
-		db.get( 'devices' ).then( function( data ) {
-			devices = data;
-		} ),
-		db.get( 'zones' ).then( function( data ) {
-			zones = data;
-		} ),
-		db.get( 'rooms' ).then( function( data ) {
-			rooms = data;
-		} )
+		devicesDB.get( 'platforms' ),
+		devicesDB.get( 'devices' ),
+		devicesDB.get( 'zones' ),
+		devicesDB.get( 'rooms' )
 	] ).then( ready );
 }
 
