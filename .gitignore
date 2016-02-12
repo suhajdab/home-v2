@@ -11,3 +11,5 @@ providers/verisure.js
 
 projectFilesBackup/*
 rethinkdb_data
+rethinkdb_dump_*.*
+src/config.json
