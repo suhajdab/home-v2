@@ -1,6 +1,20 @@
 var wemore = require( 'wemore' );
 
-var devices = [];
+var devices = [], emitter,
+	signature = {
+		commands: {
+			'setPower': {
+				type: 'boolean'
+			}
+		},
+		events: {
+			power: {
+				type: 'boolean'
+			}
+		}
+	};
+
+Object.freeze( signature );
 
 // TODO: add device state listeners
 // TODO: debug lost commands
@@ -33,8 +47,7 @@ function standardizeDevices( devices ) {
 		return {
 			label: device.friendlyName,
 			nativeId: device.serialNumber,
-			type: 'switch',
-			platform: 'wemo' // TODO: remove hardcoded platform
+			type: 'switch'
 		};
 	} );
 }
@@ -47,20 +60,6 @@ function findDeviceByNativeId( id ) {
 	return result;
 }
 
-function on( id ) {
-	var device = findDeviceByNativeId( id );
-	device && device.setBinaryState( true );
-}
-
-function off( id ) {
-	var device = findDeviceByNativeId( id );
-	device && device.setBinaryState( false );
-}
-
-function ready() {
-	console.log( 'wemo ready' );
-}
-
 function discover() {
 	var discovery = wemore.Discover()
 		.on( 'device', function( device ) {
@@ -68,21 +67,44 @@ function discover() {
 			if ( isWemo( device ) ) devices.push( device );
 		} );
 
-	// not quite sure how to ensure discovery ended
+	// not sure how to ensure discovery ended
 	setTimeout( function() {
 		discovery.close();
 		ready();
-	}, 1000 );
+	}, 5000 );
 }
 
-function init() {
+function ready() {
 	discover();
+	console.log( 'wemo ready' );
+}
+
+/* PUBLIC */
+var api = {};
+
+/**
+ * Turns on switch with specified id on/off
+ *
+ * @param id
+ * @param {Boolean} power  state to set
+ */
+api.setPower = function( id, power ) {
+	var device = findDeviceByNativeId( id );
+	device && device.setBinaryState( power );
+};
+
+function init( globalSettings, platformSettings, em ) {
+	emitter = em;
+	ready();
 }
 
 module.exports = {
-	// should return all known devices
-	getDevices: getDevices,
-	on: on,
-	off: off,
-	init: init
+	command: function( cmd ) {
+		var args = [].splice.call( arguments, 1 );
+		console.log( 'wemo command', cmd, args );
+		if ( !api[ cmd ] ) return new Error( 'wemo platform has no command: ' + cmd );
+		api[ cmd ].apply( this, args );
+	},
+	init: init,
+	signature: signature
 };

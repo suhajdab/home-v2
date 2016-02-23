@@ -1,9 +1,9 @@
 'use strict';
 
 require( 'es6-promise' ).polyfill();
-var uuid = require( 'node-uuid' ),
+var debug = require( 'debug' )( 'devices' ),
+	uuid = require( 'node-uuid' ),
 	objectAssign = require( 'object-assign' ),
-	dnode = require( 'dnode' ),
 
 	settingsDB = require( './database-layer.js' )( 'settings' ),
 	devicesDB = require( './database-layer.js' )( 'devices' ),
@@ -88,14 +88,14 @@ function findDeviceByTag( selector ) {
 		return ~( device.tags || [] ).indexOf( selector );
 	} );
 
-	console.log( 'found device by tag ' + selector, foundDevices );
+	debug( 'findDeviceByTag ' + selector, foundDevices );
 	return foundDevices;
 }
 
 function findDeviceById( id ) {
 	for ( var i = 0, device; ( device = devices[ i ] ); i++ ) {
 		if ( device.id === id ) {
-			console.log( 'found device by id ' + id, device );
+			debug( 'findDeviceById ' + id, device );
 			return [ device ];
 		}
 	}
@@ -105,7 +105,7 @@ function findDeviceById( id ) {
 function findDeviceByNativeId( id ) {
 	for ( var i = 0, device; ( device = devices[ i ] ); i++ ) {
 		if ( device.nativeId === id ) {
-			console.log( 'found device by nativeId ' + id, device );
+			debug( 'findDeviceByNativeId ' + id, device );
 			return device;
 		}
 	}
@@ -197,14 +197,14 @@ function generateEmitter( platformName ) {
 	};
 }
 
-//TODO: validate loaded settings with platform requirements
+// TODO: validate loaded settings with platform requirements
 function validateSettings( args ) {
 	return Promise.resolve( args );
 }
 
 function registerPlatform( platformName ) {
 	if ( platforms[ platformName ] ) return;
-	console.log( new Date().toTimeString() + ' registering platform: ' + platformName );
+	debug( 'registerPlatform', new Date().toTimeString() + ' : ' + platformName );
 
 	var platformSettings = settingsDB.get( platformName ),
 		globalSettings = settingsDB.get( 'global' ),// TODO: get once!
@@ -234,7 +234,7 @@ function registerNewPlatform( platform ) {
 function onAction( event ) {
 	// TODO: untangle devices, tags and standardize statuses
 	var data = event.data;
-	console.log( 'onAction', data );
+	debug( 'onAction', data );
 	var device = deviceSelector( data.deviceSelector );
 //	platforms[ device.platform ][ data.command ]( device.nativeId );
 	platforms[ device.platform ].command.apply( this, Array.concat( data.command, data.params ) );
@@ -259,19 +259,24 @@ remoteApi = {
 	}
 };
 
-//remoteApiServer = dnode( remoteApi );
-
 /* init */
 function ready( args ) {
 	// TODO: refactor ASA ES6
-	var platforms = args[ 0 ] ? args[ 0 ].array : [];
-	devices = args[ 1 ] ? args[ 1 ].array : [];
-	zones = args[ 2 ] ? args[ 2 ].array : [];
-	rooms = args[ 3 ] ? args[ 3 ].array : [];
-
+	if ( process.env.PLATFORMS ) {
+		debug( 'ready in ', 'process.env.PLATFORMS override: ' + process.env.PLATFORMS );
+		var platforms = process.env.PLATFORMS.split( ',' );
+		devices = [];
+		zones = [];
+		rooms = [];
+	} else {
+		debug( 'ready in', args );
+		var platforms = args[ 0 ] ? args[ 0 ].array : [];
+		devices = args[ 1 ] ? args[ 1 ].array : [];
+		zones = args[ 2 ] ? args[ 2 ].array : [];
+		rooms = args[ 3 ] ? args[ 3 ].array : [];
+	}
 	platforms.forEach( registerPlatform );
-//	remoteApiServer.listen( 8787 );
-	console.log( 'device.js ready', devices );
+	debug( 'ready out', 'platforms = ' + JSON.stringify( platforms ), 'devices = ' + JSON.stringify( devices ), 'zones = ' + JSON.stringify( zones ), 'rooms = ' + JSON.stringify( rooms ) );
 }
 
 function init() {
@@ -281,6 +286,8 @@ function init() {
 		devicesDB.get( 'zones' ),
 		devicesDB.get( 'rooms' )
 	] ).then( ready );
+
+	debug( 'init' );
 }
 
 init();

@@ -1,19 +1,92 @@
+'use strict';
+
 require( 'es6-promise' ).polyfill();
 
-var Colr = require( 'Colr' );
+var Colr = require( 'Colr' ),
+	hue = require( 'node-hue-api' ),
+	HueApi = hue.HueApi;
 
-var hue = require( 'node-hue-api' ),
-	HueApi = hue.HueApi,
-	lightState = hue.lightState;
+var api, emitter;
 
-var api;
-
-var deviceSignature = {
-	nativeId: '',
-	label: '',
-	platform: 'hue',
-	tags: []
+var signature = {
+	commands: {
+		'setPower': {
+			type: 'boolean'
+		},
+		'setWhite': {
+			type: 'int',
+			minimum: 2500,
+			maximum: 10000,
+			unit: 'kelvin'
+		},
+		'setHSL': {
+			type: 'object',
+			properties: {
+				hue: {
+					type: 'float',
+					minimum: 0,
+					maximum: 360
+				},
+				saturation: {
+					type: 'float',
+					minimum: 0,
+					maximum: 100
+				},
+				luminance: {
+					type: 'float',
+					minimum: 0,
+					maximum: 100
+				}
+			}
+		}
+	},
+	events: {
+		power: {
+			type: 'boolean'
+		},
+		color: {
+			type: 'object',
+			properties: {
+				hue: {
+					type: 'float',
+					minimum: 0,
+					maximum: 360
+				},
+				saturation: {
+					type: 'float',
+					minimum: 0,
+					maximum: 100
+				},
+				luminance: {
+					type: 'float',
+					minimum: 0,
+					maximum: 100
+				}
+			}
+		},
+		white: {
+			type: 'int',
+			minimum: 2500,
+			maximum: 10000,
+			unit: 'kelvin'
+		}
+	},
+	settings: {
+		host: {
+			type: 'string',
+			pattern: '^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$',
+			label: 'ip address',
+			required: true
+		},
+		username: {
+			type: 'string',
+			label: 'username',
+			required: true
+		}
+	}
 };
+
+Object.freeze( signature );
 
 var deviceStates = {};
 
@@ -138,8 +211,7 @@ function getAllLights() {
 			return {
 				nativeId: obj.id,
 				label   : obj.name,
-				type    : 'light',
-				platform: 'hue' // TODO: remove hardcoded platform
+				type    : 'light' // TODO: remove hardcoded platform
 			};
 		} );
 		return Promise.resolve( newObj );
@@ -183,7 +255,7 @@ function setColor( id, hsl, duration ) {
 
 /**
  *	Set a white color on the lamp with specified id
- *	Hue appears takes Mireds for white temperature ( = 1000000 / kelvin )
+ *	Hue takes Mireds for white temperature ( = 1000000 / kelvin )
  * @param {String} id
  * @param {Number} kelvin - white temperature of lamp ( warm: 2500 - cool: 10000 )
  * @param {Number} brightness - brightness of lamp ( 0 - 100 )
@@ -197,22 +269,31 @@ function setWhite( id, kelvin, brightness, duration ) {
 	return setState( id, stateObj, duration );
 }
 
-function init( globalSettings, platformSettings ) {
-	var host = platformSettings.get( 'host' ),
-		user = platformSettings.get( 'username' );
-	api = new HueApi( host, user );
+function init( globalSettings, platformSettings, em ) {
+	emitter = em;
+	api = new HueApi( platformSettings.host, platformSettings.user );
 	console.log( 'hue ready. host: ' + host );
 }
 
 module.exports = {
-	// should return all known devices
-	getDevices: getAllLights,
-	getState  : getState,
-	setColor  : setColor,
-	setWhite  : setWhite,
-	on        : on,
-	off       : off,
-	init      : init
+	command: function( cmd ) {
+		var args = [].splice.call( arguments, 1 );
+		console.log( 'command', cmd, args );
+		api[ cmd ].apply( this, args );
+	},
+	init: init,
+	signature: signature
 };
+
+//module.exports = {
+//	// should return all known devices
+//	getDevices: getAllLights,
+//	getState  : getState,
+//	setColor  : setColor,
+//	setWhite  : setWhite,
+//	on        : on,
+//	off       : off,
+//	init      : init
+//};
 
 // getAllLights().then( console.log.bind(console) );

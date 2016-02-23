@@ -3,39 +3,38 @@
  */
 
 require( 'es6-promise' ).polyfill();
-var CronJob = require( 'cron' ).CronJob;
-var db = require( './../database-layer.js' );
-var uuid = require( 'node-uuid' );
-var kue = require( 'kue' ),
-	events = kue.createQueue( { prefix: 'home' } );
-
+var CronJob = require( 'cron' ).CronJob,
+	uuid = require( 'node-uuid' ),
+	db = require( './database-layer.js' )( 'timers' );
 
 var timers;
 
+//TODO: finish db conversion
+
 /*
-	Using cronTime to define timers
-	url: https://github.com/ncb000gt/node-cron
+ Using cronTime to define timers
+ url: https://github.com/ncb000gt/node-cron
 
-	 *: Seconds: 0-59
-	 *: Minutes: 0-59
-	 *: Hours: 0-23
-	 *: Day of Month: 1-31
-	 *: Months: 0-11
-	 *: Day of Week: 0-6
+ *: Seconds: 0-59
+ *: Minutes: 0-59
+ *: Hours: 0-23
+ *: Day of Month: 1-31
+ *: Months: 0-11
+ *: Day of Week: 0-6
 
 
-	 var CronJob = require( 'cron' ).CronJob;
-	 var job = new CronJob( {
-		 cronTime: '00 30 11 * * 1-5',
-		 onTick: function() {
-			 // Runs every weekday (Monday through Friday)
-			 // at 11:30:00 AM. It does not run on Saturday
-			 // or Sunday.
-		 },
-		 start: false
-	 } );
+ var CronJob = require( 'cron' ).CronJob;
+ var job = new CronJob( {
+ cronTime: '00 30 11 * * 1-5',
+ onTick: function() {
+ // Runs every weekday (Monday through Friday)
+ // at 11:30:00 AM. It does not run on Saturday
+ // or Sunday.
+ },
+ start: false
+ } );
 
-	 job.start() & job.stop()
+ job.start() & job.stop()
  */
 
 /**
@@ -67,9 +66,9 @@ function filterBeforeSave( timers ) {
 function triggerTimer() {
 	console.log( 'timer triggered', this );
 	events.create( 'event', {
-		id    : this.id,
-		name  : this.name,
-		title : this.name + ' triggered',
+		id: this.id,
+		name: this.name,
+		title: this.name + ' triggered',
 		source: 'timer'
 	} ).priority( 'high' ).attempts( 5 ).save();
 
@@ -116,14 +115,14 @@ function ready( timerData ) {
 	timers.forEach( setup );
 
 	/*
-	create( {
-		label: "Hubby's weekday alarm",
-	//	cronTime: "00 30 06 *  * 1-5",
-		cronTime: "00 48 08 *  * *",
-		repeat: true,
-		enabled: true
-	} );
-	*/
+	 create( {
+	 label: "Hubby's weekday alarm",
+	 //	cronTime: "00 30 06 *  * 1-5",
+	 cronTime: "00 48 08 *  * *",
+	 repeat: true,
+	 enabled: true
+	 } );
+	 */
 
 }
 

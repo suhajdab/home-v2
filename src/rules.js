@@ -3,6 +3,7 @@
  */
 
 require( 'es6-promise' ).polyfill();
+var debug = require( 'debug' )( 'rules' );
 var uuid = require( 'node-uuid' ),
 	objectAssign = require( 'object-assign' ),
 	dnode = require( 'dnode' ),
@@ -14,6 +15,7 @@ var uuid = require( 'node-uuid' ),
 	rules = [];
 
 // TODO: multiple conditions
+// db query to find last entry with certain attributes: r.db('home').table('events').orderBy(r.desc('timeStamp')).filter({color:{brightness:92}}).limit(1)
 
 function validateConditions( data ) {
 	for ( var i = 0, rule; ( rule = rules[ i ] ); i++ ) {
@@ -51,19 +53,12 @@ function onChanges( err, cursor ) {
 
 function ready() {
 //	eventsDB.subscribe( onChanges );
-	console.log( 'rules.js', 'ready', JSON.stringify( rules, null, '\t' ) );
+	debug( 'ready', JSON.stringify( rules, null, '\t' ) );
 //	takeAction({deviceSelector:'zone:garden', service: 'off'});
 
 //	create( [{ source: 'verisure:alarm', status: 'armed' }], 'zone:house', 'off' );
 //	create( [{ source: 'sun-phase', state: 'dusk' }], 'zone:garden', 'on' );
 //	create( [{ source: 'sun-phase', state: 'dawn' }], 'zone:garden', 'off' );
-
-	devicesApi = dnode.connect( 8787 );
-	devicesApi.on( 'remote', function( remote ) {
-		remote.getPlatforms( function( platforms ) {
-			console.log( JSON.stringify( platforms ) );
-		} );
-	} );
 }
 
 function init() {
@@ -71,23 +66,28 @@ function init() {
 		.then( function( data ) {
 			rules = data || [];
 		} )
-		.catch( console.error.bind( console ) )
-		.then( ready );
+		.then( ready )
+		.catch( console.error.bind( console ) );
 
+	debug( 'init' );
 }
 
 /* PUBLIC */
-function createTimer( conditions, deviceSelector, service, params ) {
+/**
+ *
+ * @param conditions
+ * @param action
+ * @returns {*}
+ */
+function createRule( conditions, action ) {
 	var rule = {
 		conditions: conditions,
-		deviceSelector: deviceSelector,
-		service: service,
-		params: params
+		action: action
 	};
 	rule.id = uuid.v4();
 	rules.push( rule );
 	rulesDB.set( 'rules', rules );
-	console.log( 'rules.js', 'new rule create', rule );
+	debug( 'createRule', rule );
 	return rule.id;
 }
 

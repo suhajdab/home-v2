@@ -1,30 +1,53 @@
 'use strict';
-var kue = require( 'kue' ),
-	events = kue.createQueue( { prefix: 'home' } ),
-	verisureApi;
+
+var verisureApi, emitter;
+
+var signature = {
+	events: {
+		alarmChange: {
+			type: 'string',
+			enum: [ 'unarmed', 'armedaway', 'armedhome', 'pending' ]
+		}
+	},
+	settings: {
+		username: {
+			type: 'string',
+			label: 'username/e-mail',
+			required: true
+		},
+		password: {
+			type: 'string',
+			label: 'password',
+			required: true
+		}
+	}
+};
+
+Object.freeze( signature );
 
 function ready() {
 	verisureApi.on( 'alarmChange', function( data ) {
-		console.log( 'on alarmStatus', data );
-		events.create( 'event', {
-			id: 'made-up-id',
+		emitter.emit( {
+			nativeId: 'made-up-id',
+			eventType: 'alarmChange',
 			status: data.status,
-			title: 'verisure alarm: ' + data.status,
-			source: 'verisure:alarm'
-		} ).save();
+			type: 'alarm'
+		} );
 	} );
 	console.log( 'verisure ready.' );
 }
 
-function init( globalSettings, platformSettings ) {
-	var username = platformSettings.get( 'username' ),
-		password = platformSettings.get( 'password' );
+function init( globalSettings, platformSettings, em ) {
+	emitter = em;
 
 	verisureApi = require( 'verisure-api' ).setup( {
-		username: username,
-		password: password
+		username: platformSettings.username,
+		password: platformSettings.password
 	} );
 	ready();
 }
 
-module.exports.init = init;
+module.exports = {
+	init: init,
+	signature: signature
+};

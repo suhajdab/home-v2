@@ -161,12 +161,25 @@ function formatEmitData( device ) {
  * @param {Array} values Measures from netatmo api
  * @returns {Object} Ex: { attr1: val1, attr2: val2 }
  */
-function formatDeviceData( device, values ) {
+function formatMeasureData( device, values ) {
 	return device.data_type.reduce( function( accu, curr, i ) {
 		curr = curr.toLowerCase();
 		accu[ curr ] = values[ i ];
 		return accu;
 	}, {} );
+}
+
+/**
+ * Function convert array of values returned by netatmo api to key-value pairs
+ * @param {Object} device Device attributes from netatmo api
+ * @param {Array} values Measures from netatmo api
+ * @returns {Object} Ex: { attr1: val1, attr2: val2 }
+ */
+function formatDeviceData( device ) {
+	return {
+		id: device._id,
+		type: 'environment',
+	};
 }
 
 /**
@@ -221,7 +234,7 @@ function parseMeasure( measure ) {
 	debug( 'parseMeasure in', 'measure = ' + JSON.stringify( measure ) );
 	try {
 		var values = measure[ 0 ].value[ 0 ];
-		device.data = formatDeviceData( device, values );
+		device.data = formatMeasureData( device, values );
 
 		debug( 'parseMeasure out', device.module_name + ' : ' + JSON.stringify( device.data, null, '\t' ) );
 		return Promise.resolve( device );
@@ -277,6 +290,13 @@ function getData() {
 		.catch( logError );
 }
 
+function registerDevice( device ) {
+	emitter.emit( {
+		event: 'device found',
+		data: formatDeviceData( device )
+	} );
+}
+
 /**
  * Function initializes cache and creates request options for netatmo api, then starts polling
  * @param {Object} device Device attributes from netatmo api
@@ -288,6 +308,7 @@ function setupDevice( device ) {
 	// options for fetching device measurements
 	device.options = generateDeviceOptions( device );
 
+	registerDevice( device );
 	getData.bind( device )();
 }
 

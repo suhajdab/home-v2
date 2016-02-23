@@ -1,25 +1,32 @@
+'use strict';
+
 var CronJob = require( 'cron' ).CronJob,
-	kue = require( 'kue' ),
 	suncalc = require( 'suncalc' );
 
 //  calculate sun phases based on day & loc
-var events = kue.createQueue( { prefix: 'home' } );
-var geolocation, jobs = [];
+var emitter, geolocation, jobs = [];
+
+var signature = {
+	events: generateSignatureEvents()
+};
 
 // TODO: subscribe to location update
+
+function generateSignatureEvents() {
+	var times = suncalc.getTimes( Date.now() );
+	for ( var key in times ) times[ key ] = null;
+	return times;
+}
 
 /**
  * Function pushes an event to the message queue. Data is passed to it by setting context
  */
 function triggerEvent() {
-	'use strict';
-
 	console.log( 'trigger sun phase event', this );
-	events.create( 'event', {
+	emitter.emit( {
 		state: this.name,
-		title: this.name + ' triggered',
 		source: 'sun-phase'
-	} ).save();
+	} );
 }
 
 /**
@@ -29,8 +36,6 @@ function triggerEvent() {
  * @param {Date} event.date - Date object
  */
 function addCronJob( event ) {
-	'use strict';
-
 	console.log( 'adding sun phase cron job', event );
 	jobs.push( new CronJob( {
 		cronTime: event.date,
@@ -45,8 +50,6 @@ function addCronJob( event ) {
  * @param {Object} events - phase names are keys, phase dates are values
  */
 function generateCronJobs( events ) {
-	'use strict';
-
 	var now = new Date();
 	for ( var eventName in events ) {
 		if ( events[ eventName ] > now ) {
@@ -61,15 +64,11 @@ function generateCronJobs( events ) {
  * Function sets off the generation of cron jobs taking the sun phase objects provided by suncalc
  */
 function setupCronJobs() {
-	'use strict';
-
 	var sunPhases = suncalc.getTimes( Date.now(), geolocation.lat, geolocation.long );
 	generateCronJobs( sunPhases );
 }
 
 function ready() {
-	'use strict';
-
 	console.log( 'sunPhases ready.' );
 	setupCronJobs();
 }
@@ -77,9 +76,8 @@ function ready() {
 /**
  * Function sets up a repeating cron job to generate sun phase jobs each day, and does generation for current day
  */
-function init( globalSettings/* , platformSettings */ ) {
-	'use strict';
-
+function init( globalSettings, platformSettings, em ) {
+	emitter = em;
 	geolocation = globalSettings.get( 'geolocation' );
 	// cron job to regenerate sun phase crons every day
 	jobs.push( new CronJob( {
@@ -88,5 +86,7 @@ function init( globalSettings/* , platformSettings */ ) {
 		start: true
 	} ) );
 	ready();
+
+	return signature;
 }
 module.exports.init = init;

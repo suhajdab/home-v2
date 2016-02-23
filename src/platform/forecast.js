@@ -6,6 +6,17 @@ var forecast, globals, settings, geolocation;
 var cachedData = {},
 	listeners = [];
 
+var signature = {
+	settings: {
+		key: {
+			type: 'string',
+			label: 'access key'
+		}
+	}
+};
+
+Object.freeze( signature );
+
 /**
  * Function to compare data received from service to old data by object keys that contain relevant weather information
  * @param {Object} oldData - data from previous fetches
@@ -95,6 +106,6 @@ function init( globalSettings, platformSettings ) {
 }
 
 module.exports = {
-	on: on,
-	init: init
+	init: init,
+	signature: signature
 };
