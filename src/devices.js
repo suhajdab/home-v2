@@ -61,6 +61,7 @@ var debug = require( 'debug' )( 'devices' ),
 // TODO: lacking required settings, request user to enter, then re-init platform
 // TODO: add listeners to devices
 // TODO: devices should have signatures, not platform
+// Debugging devices: $ PLATFORMS=netatmo DEBUG=devices node src/devices.js
 
 /**
  * Read new room and zone tags, and store unique in db
