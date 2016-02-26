@@ -3,11 +3,9 @@
   "version": "0.1.0",
   "description": "home automation in node",
   "main": "src/index.js",
-  "scripts": {
-    "preinstall": "nvm install v0.12.10",
-    "prestart": "nvm use v0.12.10",
-    "start": "./node_modules/.bin/nf start",
-    "lint": "./node_modules/.bin/eslint --ignore-pattern node_modules '**/*.js'"
+  "engineStrict": true,
+  "engines": {
+    "node": "4.3.1"
   },
   "repository": {
     "type": "git",
@@ -42,5 +40,9 @@
     "eslint": "^1.8.0",
     "foreman": "^1.4.1",
     "forever": "^0.15.1"
+  },
+  "scripts": {
+    "start": "./node_modules/.bin/nf start",
+    "lint": "./node_modules/.bin/eslint --ignore-pattern node_modules '**/*.js'"
   }
 }
