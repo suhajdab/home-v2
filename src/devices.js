@@ -1,6 +1,6 @@
 'use strict';
 
-require( 'es6-promise' ).polyfill();
+//require( 'es6-promise' ).polyfill();
 var debug = require( 'debug' )( 'devices' ),
 	uuid = require( 'node-uuid' ),
 	objectAssign = require( 'object-assign' ),

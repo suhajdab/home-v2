@@ -1,5 +1,5 @@
 'use strict';
-require( 'es6-promise' ).polyfill();
+//require( 'es6-promise' ).polyfill();
 var debug = require( 'debug' )( 'netatmo' );
 var Netatmo = require( 'netatmo' ),
 	netatmo;
