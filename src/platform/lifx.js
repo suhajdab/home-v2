@@ -1,9 +1,8 @@
 'use strict';
 
-require( 'es6-promise' ).polyfill();
+var debug = require( 'debug' )( 'lifx' );
 
 var Colr = require( 'Colr' ),
-	objectAssign = require( 'object-assign' ),
 	LifxClient = require( 'node-lifx' ).Client,
 	client = new LifxClient();
 
@@ -113,7 +112,7 @@ function getStatePromise( light ) {
 }
 
 function storeLight( data ) {
-	console.log( 'lifx light added', data );
+	debug( 'storeLight', data );
 	cachedState.push( data );
 }
 
@@ -145,7 +144,7 @@ function parseLightState( obj ) {
 			tags: [ tag ]
 		};
 
-	console.log( 'parseLightState', newObj );
+	debug( 'parseLightState', newObj );
 	return Promise.resolve( newObj );
 }
 
@@ -297,7 +296,7 @@ function init( globalSettings, platformSettings, em ) {
 //	client.on( 'light-online', function( light ) {
 //	} );
 	pollStatus();
-	console.log( 'lifx ready' );
+	debug( 'init', globalSettings, platformSettings );
 }
 
 module.exports = {
