@@ -1,6 +1,7 @@
 'use strict';
 
 var debug = require( 'debug' )( 'lifx' );
+var deepFreeze = require('deep-freeze');
 
 var Colr = require( 'Colr' ),
 	LifxClient = require( 'node-lifx' ).Client,
@@ -13,7 +14,7 @@ var pollDelay = 500,
 	pollTimeoutId,
 	emitter;
 
-var signature = {
+const signature = {
 	commands: {
 		'setPower': {
 			type: 'boolean'
@@ -79,7 +80,7 @@ var signature = {
 	settings: {}
 };
 
-Object.freeze( signature );
+deepFreeze( signature );
 
 // TODO: consider implementing single string colors via api, ex: purple
 

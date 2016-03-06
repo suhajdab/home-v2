@@ -1,5 +1,6 @@
 'use strict';
 var debug = require( 'debug' )( 'netatmo' );
+var deepFreeze = require('deep-freeze');
 var Netatmo = require( 'netatmo' ),
 	netatmo;
 
@@ -10,7 +11,7 @@ var cachedData = {},
 	pollDelay = 5 * 60 * 1000, // every 5 min
 	emitter;
 
-var signature = {
+const signature = {
 	events: {
 		temperature: {
 			type: 'number',
@@ -64,10 +65,13 @@ var signature = {
 			label: 'password',
 			required: true
 		}
+	},
+	properties: {
+		types: [ 'environment' ]
 	}
 };
 
-Object.freeze( signature );
+deepFreeze( signature );
 
 /**
  * API limit

@@ -1,8 +1,9 @@
 'use strict';
 
 var verisureApi, emitter;
+var deepFreeze = require('deep-freeze');
 
-var signature = {
+const signature = {
 	events: {
 		alarmChange: {
 			type: 'string',
@@ -23,7 +24,7 @@ var signature = {
 	}
 };
 
-Object.freeze( signature );
+deepFreeze( signature );
 
 function ready() {
 	verisureApi.on( 'alarmChange', function( data ) {
