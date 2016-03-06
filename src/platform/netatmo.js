@@ -146,17 +146,6 @@ function logError( err ) {
 	console.error( err.stack );
 }
 
-/**
- * Function returns device data standardized for devices.js
- * @param {Object} device  Device attributes and measurements from netatmo api
- * @returns {Object} Ex: device_id: { attr1: val1, attr2: val2 }
- */
-function formatEmitData( device ) {
-	var emitData = {};
-
-	emitData[ device._id ] = device.data;
-	return emitData;
-}
 
 /**
  * Function convert array of values returned by netatmo api to key-value pairs
@@ -173,15 +162,15 @@ function formatMeasureData( device, values ) {
 }
 
 /**
- * Function convert array of values returned by netatmo api to key-value pairs
+ * Function convert device data for registration
  * @param {Object} device Device attributes from netatmo api
- * @param {Array} values Measures from netatmo api
- * @returns {Object} Ex: { attr1: val1, attr2: val2 }
+ * @returns {Object}
  */
 function formatDeviceData( device ) {
 	return {
-		id: device._id,
+		nativeId: device._id,
 		type: 'environment',
+		label: device.module_name
 	};
 }
 
@@ -254,7 +243,11 @@ function parseMeasure( measure ) {
 function emitChange( device ) {
 	if ( JSON.stringify( cachedData[ device._id ] ) != JSON.stringify( device.data ) ) {
 		debug( 'emitChange', 'data = ' + JSON.stringify( device.data ) );
-		emitter.emit( formatEmitData( device ) );
+		emitter.emit( {
+			name: 'change',
+			nativeId: device._id,
+			payload: device.data
+		} );
 	}
 
 	return Promise.resolve( device );
@@ -295,8 +288,9 @@ function getData() {
 
 function registerDevice( device ) {
 	emitter.emit( {
-		event: 'device found',
-		data: formatDeviceData( device )
+		name: 'device found',
+		nativeId: device._id,
+		payload: formatDeviceData( device )
 	} );
 }
 

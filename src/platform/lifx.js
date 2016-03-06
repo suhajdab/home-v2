@@ -114,6 +114,12 @@ function getStatePromise( light ) {
 
 function storeLight( data ) {
 	debug( 'storeLight', data );
+
+	emitter.emit( {
+		name: 'device found',
+		nativeId: data.nativeId,
+		payload: data
+	} );
 	cachedState.push( data );
 }
 
@@ -135,15 +141,13 @@ function getLightById( id ) {
  * @returns {Promise}
  */
 function parseLightState( obj ) {
-	var tag = obj.group && obj.group.name ? 'room:' + obj.group.name : '',
-		newObj = {
-			nativeId: obj.id,
-			label: obj.label,
-			type: 'light',
-			power: obj.power,
-			color: obj.color,
-			tags: [ tag ]
-		};
+	let newObj = {
+		nativeId: obj.id,
+		label: obj.label,
+		type: 'light',
+		power: obj.power,
+		color: obj.color
+	};
 
 	debug( 'parseLightState', newObj );
 	return Promise.resolve( newObj );
@@ -201,12 +205,13 @@ function diffState( cachedStates, currentStates ) {
 
 		if ( !cached ) {
 			storeLight( current );
-			emitter.emit( current );
 		} else if ( JSON.stringify( cached ) !== JSON.stringify( current ) ) {
-//			console.log( 'difference' );
-//			console.log( JSON.stringify( cached ) );
-//			console.log( JSON.stringify( current ) );
-			emitter.emit( current );
+			debug( 'change detected' );
+			emitter.emit( {
+				name: 'change',
+				nativeId: current.nativeId,
+				payload: current
+			} );
 		}
 	}
 
@@ -221,11 +226,12 @@ function pollStatus() {
 	pollTimeoutId = setTimeout( pollStatus, pollTimeout );
 
 	getAllLightStates()
-		.then( function( states ) {
+		.then( ( states ) => {
 			diffState( cachedState, states );
-		} ).then( function() {
-		setTimeout( pollStatus, pollDelay );
-	} );
+		} )
+		.then( () => {
+			setTimeout( pollStatus, pollDelay );
+		} );
 }
 
 /**
@@ -234,7 +240,7 @@ function pollStatus() {
  * @returns {Promise}
  */
 function getAllLightStates() {
-	var statePromises = client.lights().map( function( light ) {
+	var statePromises = client.lights().map( ( light ) => {
 		return getStatePromise( light ).then( parseLightState );
 	} );
 	return Promise.all( statePromises );

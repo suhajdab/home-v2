@@ -1,7 +1,9 @@
 'use strict';
 
-var verisureApi, emitter;
+var debug = require( 'debug' )( 'netatmo' );
 var deepFreeze = require('deep-freeze');
+var nativeId = 'verisure-madeup-id',
+	verisureApi, emitter;
 
 const signature = {
 	events: {
@@ -26,16 +28,31 @@ const signature = {
 
 deepFreeze( signature );
 
-function ready() {
-	verisureApi.on( 'alarmChange', function( data ) {
-		emitter.emit( {
-			nativeId: 'made-up-id',
+function onAlarmChange( data ) {
+	debug( 'onAlarmChange', data );
+	emitter.emit( {
+		name: 'change',
+		nativeId: 'made-up-id',
+		payload: {
 			eventType: 'alarmChange',
-			status: data.status,
-			type: 'alarm'
-		} );
+			status: data.status
+		}
 	} );
-	console.log( 'verisure ready.' );
+}
+
+function ready() {
+	verisureApi.on( 'alarmChange', onAlarmChange );
+
+	emitter.emit( {
+		name: 'device found',
+		nativeId: 'made-up-id',
+		payload: {
+			type: 'alarm',
+			tag: [ 'zone:indoor' ]
+		}
+	} );
+
+	debug( 'verisure ready.' );
 }
 
 function init( globalSettings, platformSettings, em ) {

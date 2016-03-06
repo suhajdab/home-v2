@@ -67,7 +67,7 @@ var debug = require( 'debug' )( 'devices' ),
  */
 function importTags( tags ) {
 	tags.forEach( function( tag ) {
-		var arr = tag.split( ':' );
+		let arr = tag.split( ':' );
 		if ( arr.length < 2 ) {
 			return;
 		}
@@ -92,7 +92,7 @@ function findDeviceByTag( selector ) {
 }
 
 function findDeviceById( id ) {
-	for ( var i = 0, device; ( device = devices[ i ] ); i++ ) {
+	for ( let i = 0, device; ( device = devices[ i ] ); i++ ) {
 		if ( device.id === id ) {
 			debug( 'findDeviceById ' + id, device );
 			return [ device ];
@@ -102,7 +102,7 @@ function findDeviceById( id ) {
 }
 
 function findDeviceByNativeId( id ) {
-	for ( var i = 0, device; ( device = devices[ i ] ); i++ ) {
+	for ( let i = 0, device; ( device = devices[ i ] ); i++ ) {
 		if ( device.nativeId === id ) {
 			debug( 'findDeviceByNativeId ' + id, device );
 			return device;
@@ -160,7 +160,7 @@ function registerNewDevice( device ) {
 }
 
 function filterOutRegisteredDevices( device ) {
-	for ( var d in devices ) {
+	for ( let d in devices ) {
 		if ( devices[ d ].nativeId === device.nativeId && devices[ d ].platform === device.platform ) {
 			return false;
 		}
@@ -176,18 +176,25 @@ function onRegistrationError( err ) {
 	console.error( 'onRegistrationError', this, err ); // TODO: error logging
 }
 
+/**
+ *
+ * @param platformName
+ * @returns {{emit: emit}}
+ */
 function generateEmitter( platformName ) {
-	function emit( data ) {
+	/**
+	 *
+	 * @param event - event data from platform, contains name, nativeId, payload
+	 */
+	function emit( event ) {
 		// TODO: connect with rules & rest of scripts
-		var defaultData = {
-				timeStamp: Date.now(),
-				platform: platformName
-			},
-			eventData = objectAssign( {}, data, defaultData );
+		event.platform = platformName;
+		event.timeStamp = Date.now();
 
-		eventsDB.insert( eventData );
-		if ( !findDeviceByNativeId( data.nativeId ) ) {
-			registerNewDevice( eventData );
+		debug( 'emit', event );
+		eventsDB.insert( event );
+		if ( event.name === 'device found' && !findDeviceByNativeId( event.nativeId ) ) {
+			registerNewDevice( event );
 		}
 	}
 
@@ -243,24 +250,10 @@ function triggerCommand( command, params, device ) {
 	platforms[ device.platform ].command.call( this, [ command, params ] );
 }
 
-/* remote api */
-remoteApi = {
-	trigger: function( selector, command, params ) {
-		var targetDevices = deviceSelector( selector );
-		if ( !targetDevices ) return; // TODO: error
-		targetDevices.forEach( triggerCommand.bind( null, command, params ) );
-	},
-	getPlatforms: function( callback ) {
-		callback( platforms );
-	},
-	getDevices: function( callback ) {
-		callback( devices );
-	}
-};
-
 /* init */
 function ready( args ) {
 	// TODO: refactor ASA ES6
+	// TODO: disable registration during debug to avoid overwriting real data
 	if ( process.env.PLATFORMS ) {
 		debug( 'ready in ', 'process.env.PLATFORMS override: ' + process.env.PLATFORMS );
 		var platforms = process.env.PLATFORMS.split( ',' );
