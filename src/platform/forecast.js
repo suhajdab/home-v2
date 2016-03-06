@@ -1,4 +1,3 @@
-require( 'es6-promise' ).polyfill();
 var Forecast = require( 'forecast' );
 
 var forecast, globals, settings, geolocation;
