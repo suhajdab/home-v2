@@ -82,12 +82,12 @@ function importTags( tags ) {
 	devicesDB.set( 'zones', { array: zones } );
 }
 
-function findDeviceByTag( selector ) {
+function findDevicesByTag( selector ) {
 	var foundDevices = devices.filter( function( device ) {
 		return ~( device.tags || [] ).indexOf( selector );
 	} );
 
-	debug( 'findDeviceByTag ' + selector, foundDevices );
+	debug( 'findDevicesByTag ' + selector, foundDevices );
 	return foundDevices;
 }
 
@@ -111,17 +111,17 @@ function findDeviceByNativeId( id ) {
 	return false;
 }
 
-function findDevice( selector ) {
+function findDevices( selector ) {
 	if ( ~selector.indexOf( ':' ) ) {
-		return findDeviceByTag( selector );
+		return findDevicesByTag( selector );
 	}
 	else {
-		return findDeviceById( selector );
+		return [ findDeviceById( selector ) ];
 	}
 }
 
 function concatDevices( accum, sel ) {
-	var found = findDevice( sel );
+	var found = findDevices( sel );
 
 	if ( found ) {
 		return accum.concat( found );
@@ -134,7 +134,7 @@ function deviceSelector( selector ) {
 	if ( Array.isArray( selector ) ) {
 		return selector.reduce( concatDevices, [] );
 	} else {
-		return findDevice( selector );
+		return findDevices( selector );
 	}
 }
 
@@ -237,17 +237,21 @@ function registerNewPlatform( platform ) {
 //	devicesDB.set( 'platforms', { array: Object.keys( platforms ) } );
 }
 
-function onAction( event ) {
+function onMessage( data ) {
 	// TODO: untangle devices, tags and standardize statuses
-	var data = event.data;
-	debug( 'onAction', data );
-	var device = deviceSelector( data.deviceSelector );
+	debug( 'onMessage', data );
+	if ( !data.deviceSelector ) return;
+
+	var devices = deviceSelector( data.deviceSelector );
+	devices.forEach( ( device ) => {
+		triggerCommand( data.command, data.params, device );
+	} )
 //	platforms[ device.platform ][ data.command ]( device.nativeId );
-	platforms[ device.platform ].command.apply( this, Array.concat( data.command, data.params ) );
+//	platforms[ device.platform ].command.apply( this, Array.concat( data.command, data.params ) );
 }
 
 function triggerCommand( command, params, device ) {
-	platforms[ device.platform ].command.call( this, [ command, params ] );
+	platforms[ device.platform ].command.apply( this, [].concat( command, device.nativeId, params ) );
 }
 
 /* init */
@@ -278,6 +282,8 @@ function init() {
 		devicesDB.get( 'zones' ),
 		devicesDB.get( 'rooms' )
 	] ).then( ready );
+
+	process.on( 'message', onMessage );
 
 	debug( 'init' );
 }
