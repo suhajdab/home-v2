@@ -1,9 +1,7 @@
 'use strict';
 
-require( 'es6-promise' ).polyfill();
 var debug = require( 'debug' )( 'database-layer' );
-var r = require( 'rethinkdb' ),
-	objectAssign = require( 'object-assign' );
+var r = require( 'rethinkdb' );
 
 var settings = {
 		host: 'localhost',

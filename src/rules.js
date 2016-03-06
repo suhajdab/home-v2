@@ -2,16 +2,12 @@
  * RULES
  */
 
-require( 'es6-promise' ).polyfill();
 var debug = require( 'debug' )( 'rules' );
 var uuid = require( 'node-uuid' ),
-	objectAssign = require( 'object-assign' ),
-	dnode = require( 'dnode' ),
 
 	rulesDB = require( './database-layer.js' )( 'rules', 'id' ),
 	eventsDB = require( './database-layer.js' )( 'events', 'id' ),
 
-	devicesApi,
 	rules = [];
 
 // TODO: multiple conditions
