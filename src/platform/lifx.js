@@ -83,6 +83,7 @@ const signature = {
 deepFreeze( signature );
 
 // TODO: consider implementing single string colors via api, ex: purple
+// TODO: apis should allow for skipping properties to only adjust 1 aspect without touching others (ex: change hue, not sat & lum & power)
 
 /* PRIVATE */
 
@@ -124,12 +125,13 @@ function storeLight( data ) {
 }
 
 function getLightById( id ) {
+	const args = [].slice.call( arguments, 1 );
 	return new Promise( function( resolve, reject ) {
 		var light = client.light( id );
 		if ( !light ) {
-			reject( new Error( 'Lifx light with ' + id + ' not found!' ) );
+			reject( new Error( 'Lifx light with id:' + id + ' not found!' ) );
 		} else {
-			resolve( light );
+			resolve( [].concat( light, args ) );
 		}
 	} );
 }
@@ -246,21 +248,35 @@ function getAllLightStates() {
 	return Promise.all( statePromises );
 }
 
+function execCommand( arr ) {
+	// let there be destructuring
+	const light = arr[ 0 ];
+	const cmd = arr[ 1 ];
+	const args = [].slice.call( arr, 2 );
+
+	debug( 'execCommand', light, cmd, args );
+
+	return new Promise( function( resolve, reject ) {
+		light[ cmd ].apply( light, args, ( err ) => { if ( err ) reject( err ); else resolve( true ); } );
+	} );
+}
+
 /* PUBLIC */
 var api = {};
 
 /**
  * Turns on light with specified id
  *
- * @param id
+ * @param {String} id  light's native id
  * @param {Boolean} power  state to set
- * @param {Number} [duration=defaultDuration]
+ * @param {Number} duration  duration of transition in ms
+ * @returns {Promise}
  */
 api.setPower = function( id, power, duration ) {
 	var fn = power ? 'on' : 'off';
-	console.log( 'setPower:', id, fn );
-	duration = duration || defaultDuration;
-	client.light( id )[ fn ]( duration );
+	debug( 'setPower:', arguments );
+
+	return getLightById( id, fn, duration ).then( execCommand );
 };
 
 /**
@@ -275,9 +291,8 @@ api.setPower = function( id, power, duration ) {
  */
 api.setColor = function( id, hsl, duration ) {
 	var hsb = convertToHSB( hsl );
-	duration = duration || defaultDuration;
 
-	client.light( id ).color( hsb.hue, hsb.saturation, hsb.brightness, 3500, duration );
+	return getLightById( id, 'color', hsb.hue, hsb.saturation, hsb.brightness, 3500, duration ).then( execCommand );
 };
 
 /**
@@ -289,8 +304,7 @@ api.setColor = function( id, hsl, duration ) {
  * @param {Number} [duration=defaultDuration]
  */
 api.setWhite = function( id, kelvin, brightness, duration, powerOn ) {
-	duration = duration || defaultDuration;
-	client.light( id ).color( 0, 0, brightness, kelvin, duration );
+	return getLightById( id, 'color', 0, 0, brightness, kelvin, duration ).then( execCommand );
 };
 
 function init( globalSettings, platformSettings, em ) {
@@ -310,10 +324,10 @@ module.exports = {
 	command: function( cmd ) {
 		var args = [].splice.call( arguments, 1 );
 		console.log( 'command', cmd, args );
-		api[ cmd ].apply( this, args );
+
+		if ( !api[ cmd ] ) return Promise.reject( new Error( `${cmd} command not found in lifx api` ) );
+		else return api[ cmd ].apply( this, args );
 	},
 	init: init,
 	signature: signature
 };
-
-//init();

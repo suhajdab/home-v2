@@ -237,6 +237,7 @@ function initPlatform( args ) {
 
 function registerNewPlatform( platform ) {
 	registerPlatform( platform );
+	// TODO: re-enable?
 //	devicesDB.set( 'platforms', { array: Object.keys( platforms ) } );
 }
 
@@ -248,13 +249,11 @@ function onMessage( data ) {
 	var devices = deviceSelector( data.deviceSelector );
 	devices.forEach( ( device ) => {
 		triggerCommand( data.command, data.params, device );
-	} )
-//	platforms[ device.platform ][ data.command ]( device.nativeId );
-//	platforms[ device.platform ].command.apply( this, Array.concat( data.command, data.params ) );
+	} );
 }
 
 function triggerCommand( command, params, device ) {
-	platforms[ device.platform ].command.apply( this, [].concat( command, device.nativeId, params ) );
+	platforms[ device.platform ].command.apply( this, [].concat( command, device.nativeId, params ) ).catch( console.log.bind( console ) );
 }
 
 /* init */
@@ -269,6 +268,7 @@ function ready( args ) {
 		rooms = [];
 	} else {
 		debug( 'ready in', args );
+		// TODO: .array thing should be in database-layer?
 		var platforms = args[ 0 ] ? args[ 0 ].array : [];
 		devices = args[ 1 ] ? args[ 1 ].array : [];
 		zones = args[ 2 ] ? args[ 2 ].array : [];
