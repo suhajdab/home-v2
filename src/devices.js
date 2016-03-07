@@ -192,7 +192,10 @@ function generateEmitter( platformName ) {
 		event.timeStamp = Date.now();
 
 		debug( 'emit', event );
+		// save event data
 		eventsDB.insert( event );
+		// inform other home components
+		//process.send( event );
 		if ( event.name === 'device found' && !findDeviceByNativeId( event.nativeId ) ) {
 			registerNewDevice( event );
 		}
