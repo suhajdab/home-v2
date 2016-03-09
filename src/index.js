@@ -1,6 +1,7 @@
 /**
  * HOME - bus
  */
+'use strict';
 
 const debug = require( 'debug' )( 'index' );
 const cp = require( 'child_process' );
@@ -30,15 +31,9 @@ function init() {
 	debug( 'init' );
 
 	scripts.forEach( forkChild );
+	process.on( 'exit', function() {
+		scripts.forEach( ( script )=> { forks[ script ].kill(); } );
+	} );
 }
-
-//const n = cp.fork(`${__dirname}/child.js`);
-//const n = cp.fork( 'child.js' );
-
-//n.on( 'message', function( m ) {
-//	console.log( 'PARENT got message:', m );
-//} );
-//
-//n.send( { hello: 'world' } );
 
 init();
