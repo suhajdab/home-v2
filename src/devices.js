@@ -248,12 +248,13 @@ function onMessage( data ) {
 
 	var devices = deviceSelector( data.deviceSelector );
 	devices.forEach( ( device ) => {
-		triggerCommand( data.command, data.params, device );
+		let args = Object.assign( {}, data.args, { id: device.nativeId } );
+		triggerCommand( data.command, args, device.platform );
 	} );
 }
 
-function triggerCommand( command, params, device ) {
-	platforms[ device.platform ].command.apply( this, [].concat( command, device.nativeId, params ) ).catch( console.log.bind( console ) );
+function triggerCommand( command, args, platform ) {
+	platforms[ platform ].command.apply( this, [].concat( command, args ) ).catch( console.log.bind( console ) );
 }
 
 /* init */

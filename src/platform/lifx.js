@@ -1,14 +1,14 @@
 'use strict';
 
 var debug = require( 'debug' )( 'lifx' );
-var deepFreeze = require('deep-freeze');
+var deepFreeze = require( 'deep-freeze' );
+var validateCommand = require( '../utils/validate-platform-command' );
 
 var Colr = require( 'Colr' ),
 	LifxClient = require( 'node-lifx' ).Client,
 	client = new LifxClient();
 
 var pollDelay = 500,
-	defaultDuration = 5000,
 	cachedState = [],
 	pollTimeout = 5000,
 	pollTimeoutId,
@@ -17,31 +17,82 @@ var pollDelay = 500,
 const signature = {
 	commands: {
 		'setPower': {
-			type: 'boolean'
+			type: 'object',
+			properties: {
+				id: {
+					type: 'string',
+					required: true
+				},
+				power: {
+					type: 'boolean',
+					required: true
+				},
+				duration: {
+					type: 'number',
+					minimum: 0,
+					maximum: 86400000,
+					unit: 'milliseconds'
+				}
+			}
 		},
 		'setWhite': {
-			type: 'int',
-			minimum: 2500,
-			maximum: 9000,
-			unit: 'kelvin'
+			type: 'object',
+			properties: {
+				id: {
+					type: 'string',
+					required: true
+				},
+				kelvin: {
+					type: 'number',
+					minimum: 2500,
+					maximum: 9000,
+					unit: 'kelvin',
+					required: true
+				},
+				brightness: {
+					type: 'number',
+					minimum: 0,
+					maximum: 100,
+					unit: '%'
+				},
+				duration: {
+					type: 'number',
+					minimum: 0,
+					maximum: 86400000,
+					unit: 'milliseconds'
+				}
+			}
 		},
 		'setHSL': {
 			type: 'object',
 			properties: {
+				id: {
+					type: 'string',
+					required: true
+				},
 				hue: {
-					type: 'float',
+					type: 'number',
 					minimum: 0,
-					maximum: 360
+					maximum: 360,
+					required: 'any'
 				},
 				saturation: {
-					type: 'float',
+					type: 'number',
 					minimum: 0,
-					maximum: 100
+					maximum: 100,
+					required: 'any'
 				},
 				luminance: {
-					type: 'float',
+					type: 'number',
 					minimum: 0,
-					maximum: 100
+					maximum: 100,
+					required: 'any'
+				},
+				duration: {
+					type: 'number',
+					minimum: 0,
+					maximum: 86400000,
+					unit: 'milliseconds'
 				}
 			}
 		}
@@ -54,30 +105,43 @@ const signature = {
 			type: 'object',
 			properties: {
 				hue: {
-					type: 'float',
+					type: 'number',
 					minimum: 0,
 					maximum: 360
 				},
 				saturation: {
-					type: 'float',
+					type: 'number',
 					minimum: 0,
 					maximum: 100
 				},
 				luminance: {
-					type: 'float',
+					type: 'number',
 					minimum: 0,
 					maximum: 100
 				}
 			}
 		},
 		white: {
-			type: 'int',
+			type: 'number',
 			minimum: 2500,
 			maximum: 9000,
 			unit: 'kelvin'
+		},
+		brightness: {
+			type: 'number',
+			minimum: 0,
+			maximum: 100,
+			unit: '%'
 		}
 	},
-	settings: {}
+	settings: {
+		defaultDuration: {
+			type: 'number',
+			minimum: 0,
+			maximum: 86400000,
+			unit: 'milliseconds'
+		}
+	}
 };
 
 deepFreeze( signature );
@@ -257,7 +321,7 @@ function execCommand( arr ) {
 	debug( 'execCommand', light, cmd, args );
 
 	return new Promise( function( resolve, reject ) {
-		light[ cmd ].apply( light, args, ( err ) => { if ( err ) reject( err ); else resolve( true ); } );
+		light[ cmd ].apply( light, args, ( err ) => { if ( err ) reject( new Error( err ) ); else resolve( true ); } );
 	} );
 }
 
@@ -267,45 +331,53 @@ var api = {};
 /**
  * Turns on light with specified id
  *
- * @param {String} id  light's native id
- * @param {Boolean} power  state to set
- * @param {Number} duration  duration of transition in ms
+ * @param {Object} args
+ * @param {String} args.id  light's native id
+ * @param {Boolean} args.power  state to set
+ * @param {Number} args.duration  duration of transition in ms
  * @returns {Promise}
  */
-api.setPower = function( id, power, duration ) {
-	var fn = power ? 'on' : 'off';
+api.setPower = function( args ) {
+	var fn = args.power ? 'on' : 'off';
 	debug( 'setPower:', arguments );
 
-	return getLightById( id, fn, duration ).then( execCommand );
+	return getLightById( args.id, fn, args.duration ).then( execCommand );
 };
 
 /**
  * Set color of lamp with specified id
  *
- * @param {String} id
- * @param {Object} hsl - HSL color
- * @param {Number} hsl.h - hue ( 0 - 360 )
- * @param {Number} hsl.s - saturation ( 0 - 100 )
- * @param {Number} hsl.l - luminance ( 0 - 100 )
- * @param {Number} [duration=defaultDuration]
+ * @param {Object} args
+ * @param {String} args.id
+ * @param {Number} args.h - hue ( 0 - 360 )
+ * @param {Number} args.s - saturation ( 0 - 100 )
+ * @param {Number} args.l - luminance ( 0 - 100 )
+ * @param {Number} args.duration
  */
-api.setColor = function( id, hsl, duration ) {
-	var hsb = convertToHSB( hsl );
+api.setHSL = function( args ) {
+	var hsb = convertToHSB( { h: args.hue, s: args.saturation, l: args.luminance } );
 
-	return getLightById( id, 'color', hsb.hue, hsb.saturation, hsb.brightness, 3500, duration ).then( execCommand );
+	debug( 'setHSL', arguments, hsb );
+	return getLightById( args.id, 'color', hsb.hue, hsb.saturation, hsb.brightness, 3500, args.duration ).then( execCommand );
 };
 
 /**
  * Set a white color on the lamp with specified id
  *
- * @param {String} id
- * @param {Number} kelvin - white temperature of lamp ( warm: 2500 - cool: 9000 )
- * @param {Number} brightness - brightness of lamp ( 0 - 100 )
- * @param {Number} [duration=defaultDuration]
+ * @param {Object} args
+ * @param {String} args.id
+ * @param {Number} args.kelvin - white temperature of lamp ( warm: 2500 - cool: 9000 )
+ * @param {Number} args.brightness - brightness of lamp ( 0 - 100 )
+ * @param {Number} args.duration
  */
-api.setWhite = function( id, kelvin, brightness, duration, powerOn ) {
-	return getLightById( id, 'color', 0, 0, brightness, kelvin, duration ).then( execCommand );
+api.setWhite = function( args ) {
+	return getLightById( args.id, 'color', 0, 0, args.brightness, args.kelvin, args.duration ).then( execCommand );
 };
+
+function applyCommand( args ) {
+	debug( 'applyCommand', args );
+	return api[ args[ 0 ] ]( args[ 1 ] );
+}
 
 function init( globalSettings, platformSettings, em ) {
 	emitter = em;
@@ -321,12 +393,10 @@ function init( globalSettings, platformSettings, em ) {
 }
 
 module.exports = {
-	command: function( cmd ) {
-		var args = [].splice.call( arguments, 1 );
-		console.log( 'command', cmd, args );
+	command: function( cmd, args ) {
+		debug( 'lifx received command', cmd, args );
 
-		if ( !api[ cmd ] ) return Promise.reject( new Error( `${cmd} command not found in lifx api` ) );
-		else return api[ cmd ].apply( this, args );
+		return validateCommand( signature, cmd, args ).then( applyCommand );
 	},
 	init: init,
 	signature: signature
