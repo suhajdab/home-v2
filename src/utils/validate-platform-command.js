@@ -1,8 +1,8 @@
 'use strict';
 
-var debug = require( 'debug' )( 'validate-command' );
+var debug = require( 'debug' )( 'validate-platform-command' );
 
-var validatePlatformCommand = (function( undefined ) {
+var validatePlatformCommand = ( function( undefined ) {
 
 	// type tests
 	function isBoolean( v ) {
@@ -57,7 +57,7 @@ var validatePlatformCommand = (function( undefined ) {
 	}
 
 	function validator( signature, command, commandArgs ) {
-		debug( validator, 'signature: ',signature, 'command: ', command, 'commandArgs: ',commandArgs );
+		debug( 'validator', 'signature: ',signature, 'command: ', command, 'commandArgs: ',commandArgs );
 		return new Promise( function( resolve, reject ) {
 			var commandSignature = getCommandSignature( signature, command );
 

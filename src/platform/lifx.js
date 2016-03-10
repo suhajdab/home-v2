@@ -2,7 +2,7 @@
 
 var debug = require( 'debug' )( 'lifx' );
 var deepFreeze = require( 'deep-freeze' );
-var validateCommand = require( '../utils/validate-platform-command' );
+const validatePlatformCommand = require( '../utils/' ).validatePlatformCommand;
 
 var Colr = require( 'Colr' ),
 	LifxClient = require( 'node-lifx' ).Client,
@@ -222,9 +222,9 @@ function parseLightState( obj ) {
 /**
  * Function takes an HSL color and converts it to HSB in ranges for device
  * @param {Object} hsl - HSL color
- * @param {Number} hsl.h - hue ( 0 - 360 )
- * @param {Number} hsl.s - saturation ( 0 - 100 )
- * @param {Number} hsl.l - luminance ( 0 - 100 )
+ * @param {number} hsl.h - hue ( 0 - 360 )
+ * @param {number} hsl.s - saturation ( 0 - 100 )
+ * @param {number} hsl.l - luminance ( 0 - 100 )
  * @returns {{hue: (hsv.h|*), saturation: number, brightness: number}}
  */
 function convertToHSB( hsl ) {
@@ -239,7 +239,7 @@ function convertToHSB( hsl ) {
 
 /**
  * Function searches for a given native device id in an array
- * @param {String} nativeId
+ * @param {string} nativeId
  * @param {Array} deviceArray
  * @returns {Object}  found device object or false
  */
@@ -312,6 +312,21 @@ function getAllLightStates() {
 	return Promise.all( statePromises );
 }
 
+/**
+ * Applies command with arguments
+ * @param {Object} args  command arguments
+ * @returns {Promise}
+ */
+function applyCommand( args ) {
+	debug( 'applyCommand', args );
+	return api[ args[ 0 ] ]( args[ 1 ] );
+}
+
+/**
+ *
+ * @param arr
+ * @returns {Promise}
+ */
 function execCommand( arr ) {
 	// let there be destructuring
 	const light = arr[ 0 ];
@@ -332,9 +347,9 @@ var api = {};
  * Turns on light with specified id
  *
  * @param {Object} args
- * @param {String} args.id  light's native id
+ * @param {string} args.id  light's native id
  * @param {Boolean} args.power  state to set
- * @param {Number} args.duration  duration of transition in ms
+ * @param {number} args.duration  duration of transition in ms
  * @returns {Promise}
  */
 api.setPower = function( args ) {
@@ -348,11 +363,11 @@ api.setPower = function( args ) {
  * Set color of lamp with specified id
  *
  * @param {Object} args
- * @param {String} args.id
- * @param {Number} args.h - hue ( 0 - 360 )
- * @param {Number} args.s - saturation ( 0 - 100 )
- * @param {Number} args.l - luminance ( 0 - 100 )
- * @param {Number} args.duration
+ * @param {string} args.id
+ * @param {number} args.h - hue ( 0 - 360 )
+ * @param {number} args.s - saturation ( 0 - 100 )
+ * @param {number} args.l - luminance ( 0 - 100 )
+ * @param {number} args.duration
  */
 api.setHSL = function( args ) {
 	var hsb = convertToHSB( { h: args.hue, s: args.saturation, l: args.luminance } );
@@ -365,20 +380,21 @@ api.setHSL = function( args ) {
  * Set a white color on the lamp with specified id
  *
  * @param {Object} args
- * @param {String} args.id
- * @param {Number} args.kelvin - white temperature of lamp ( warm: 2500 - cool: 9000 )
- * @param {Number} args.brightness - brightness of lamp ( 0 - 100 )
- * @param {Number} args.duration
+ * @param {string} args.id
+ * @param {number} args.kelvin - white temperature of lamp ( warm: 2500 - cool: 9000 )
+ * @param {number} args.brightness - brightness of lamp ( 0 - 100 )
+ * @param {number} args.duration
  */
 api.setWhite = function( args ) {
 	return getLightById( args.id, 'color', 0, 0, args.brightness, args.kelvin, args.duration ).then( execCommand );
 };
 
-function applyCommand( args ) {
-	debug( 'applyCommand', args );
-	return api[ args[ 0 ] ]( args[ 1 ] );
-}
-
+/**
+ *
+ * @param globalSettings
+ * @param platformSettings
+ * @param em
+ */
 function init( globalSettings, platformSettings, em ) {
 	emitter = em;
 	client.init();
@@ -394,9 +410,9 @@ function init( globalSettings, platformSettings, em ) {
 
 module.exports = {
 	command: function( cmd, args ) {
-		debug( 'lifx received command', cmd, args );
+		debug( 'received command', cmd, args );
 
-		return validateCommand( signature, cmd, args ).then( applyCommand );
+		return validatePlatformCommand( signature, cmd, args ).then( applyCommand );
 	},
 	init: init,
 	signature: signature
