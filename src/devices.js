@@ -13,10 +13,10 @@ var debug = require( 'debug' )( 'devices' ),
 				type: 'object',
 				properties: {
 					lat: {
-						type: 'float'
+						type: 'number'
 					},
 					long: {
-						type: 'float'
+						type: 'number'
 					}
 				}
 			},
@@ -52,12 +52,10 @@ var debug = require( 'debug' )( 'devices' ),
 	devices,
 	rooms,
 	zones,
-	remoteApi,
-	remoteApiServer;
+	overrideMode;
 
 // TODO: discover new devices
 // TODO: lacking required settings, request user to enter, then re-init platform
-// TODO: add listeners to devices
 // TODO: devices should have signatures, not platform
 // Debugging devices: $ PLATFORMS=netatmo DEBUG=devices node src/devices.js
 
@@ -78,8 +76,11 @@ function importTags( tags ) {
 			zones.push( arr[ 1 ] );
 		}
 	} );
-	devicesDB.set( 'rooms', { array: rooms } );
-	devicesDB.set( 'zones', { array: zones } );
+
+	if ( !overrideMode ) {
+		devicesDB.set( 'rooms', { array: rooms } );
+		devicesDB.set( 'zones', { array: zones } );
+	}
 }
 
 function findDevicesByTag( selector ) {
@@ -153,7 +154,7 @@ function sanitizeDeviceData( deviceData ) {
 function registerNewDevice( device ) {
 	// add home specific id to device
 	devices.push( sanitizeDeviceData( device ) );
-	devicesDB.set( 'devices', { array: devices } );
+	if ( !overrideMode ) devicesDB.set( 'devices', { array: devices } );
 	if ( device.tags ) {
 		importTags( device.tags );
 	}
@@ -193,7 +194,7 @@ function generateEmitter( platformName ) {
 
 		debug( 'emit', event );
 		// save event data
-		eventsDB.insert( event );
+		if ( !overrideMode ) eventsDB.insert( event );
 		// inform other home components
 		//process.send( event );
 		if ( event.name === 'device found' && !findDeviceByNativeId( event.nativeId ) ) {
@@ -238,7 +239,7 @@ function initPlatform( args ) {
 function registerNewPlatform( platform ) {
 	registerPlatform( platform );
 	// TODO: re-enable?
-//	devicesDB.set( 'platforms', { array: Object.keys( platforms ) } );
+//	if (!overrideMode) devicesDB.set( 'platforms', { array: Object.keys( platforms ) } );
 }
 
 function onMessage( data ) {
@@ -260,13 +261,15 @@ function triggerCommand( command, args, platform ) {
 /* init */
 function ready( args ) {
 	// TODO: refactor ASA ES6
-	// TODO: disable registration during debug to avoid overwriting real data
 	if ( process.env.PLATFORMS ) {
 		debug( 'ready in ', 'process.env.PLATFORMS override: ' + process.env.PLATFORMS );
+
 		var platforms = process.env.PLATFORMS.split( ',' );
 		devices = [];
 		zones = [];
 		rooms = [];
+
+		overrideMode = true;
 	} else {
 		debug( 'ready in', args );
 		// TODO: .array thing should be in database-layer?
