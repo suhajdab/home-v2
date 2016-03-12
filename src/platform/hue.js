@@ -1,17 +1,34 @@
 'use strict';
 
-require( 'es6-promise' ).polyfill();
-
-var Colr = require( 'Colr' ),
+const debug = require( 'debug' )( 'hue' ),
+	deepFreeze = require( 'deep-freeze' ),
+	validatePlatformCommand = require( '../utils/' ).validatePlatformCommand,
+	Colr = require( 'Colr' ),
 	hue = require( 'node-hue-api' ),
 	HueApi = hue.HueApi;
 
-var api, emitter;
+var hueApi, emitter, cachedState = [];
 
-var signature = {
+const signature = {
 	commands: {
 		'setPower': {
-			type: 'boolean'
+			type: 'object',
+			properties: {
+				id: {
+					type: 'string',
+					required: true
+				},
+				power: {
+					type: 'boolean',
+					required: true
+				},
+				duration: {
+					type: 'number',
+					minimum: 0,
+					maximum: 86400000,
+					unit: 'milliseconds'
+				}
+			}
 		},
 		'setWhite': {
 			type: 'int',
@@ -86,53 +103,53 @@ var signature = {
 	}
 };
 
-Object.freeze( signature );
+deepFreeze( signature );
 
 var deviceStates = {};
 
 /*
-	node-hue-api API
+ node-hue-api API
 
-	on() 			{ on: true }
- 	off()			{ on: false }
+ on() 			{ on: true }
+ off()			{ on: false }
 
- 	white(colorTemp, brightPercent) where colorTemp is a value between 154 (cool) and 500 (warm) and brightPercent is 0 to 100
- 	white(154,100)	{ ct: 154, bri: 254 }
+ white(colorTemp, brightPercent) where colorTemp is a value between 154 (cool) and 500 (warm) and brightPercent is 0 to 100
+ white(154,100)	{ ct: 154, bri: 254 }
 
-	brightness(percent) where percent is the brightness from 0 to 100
-	brightness(50)	{ bri: 127 }
+ brightness(percent) where percent is the brightness from 0 to 100
+ brightness(50)	{ bri: 127 }
 
- 	hsl(hue, saturation, brightPercent) where hue is a value from 0 to 359, saturation is a percent value from 0 to 100, and brightPercent is from 0 to 100
- 	hsl(30,50,75)	{ hue: 5476, sat: 127, bri: 191 }
+ hsl(hue, saturation, brightPercent) where hue is a value from 0 to 359, saturation is a percent value from 0 to 100, and brightPercent is from 0 to 100
+ hsl(30,50,75)	{ hue: 5476, sat: 127, bri: 191 }
 
- 	rgb(red, green, blue) where red, green and blue are values from 0 to 255 - Not all colors can be created by the lights
- 	transition(seconds) this can be used with another setting to create a transition effect (like change brightness over 10 seconds)
- 	.transition(5)	{ ..., transitiontime: 50 }
+ rgb(red, green, blue) where red, green and blue are values from 0 to 255 - Not all colors can be created by the lights
+ transition(seconds) this can be used with another setting to create a transition effect (like change brightness over 10 seconds)
+ .transition(5)	{ ..., transitiontime: 50 }
 
 
- 	colors: {
- 		hue: 0 - 65534,
-		sat: 0 - 254,
-		bri: 0 - 254
-	},
-	white: {
-		ct: 154 - 500,
-		bri: 0 - 254
-	}
+ colors: {
+ hue: 0 - 65534,
+ sat: 0 - 254,
+ bri: 0 - 254
+ },
+ white: {
+ ct: 154 - 500,
+ bri: 0 - 254
+ }
 
  */
 
 // TODO: keep polling lights' state and publish changes, so UI can be updated following external changes
 // TODO: expose native scheduling api
 // TODO: discover hub automatically
+// TODO: should create user when unset / needed with button pushing verification
+// TODO: setup should validate hub? or per command?
 
 // api.getFullState().then( function( data ) {
 // 	console.log(JSON.stringify( data, null, "\t") );
 // } ).catch(console.log.bind( console) );
 
-
 /* UTILITY */
-
 
 /**
  * Function to compare data received from lights state to old data
@@ -161,10 +178,19 @@ function filterObject( obj, keys ) {
 	return newObj;
 }
 
-
 /* PRIVATE */
 
 function getDeviceStates() {
+}
+
+function standardizeState( state ) {
+	// TODO: deal with color temp (ct) which only exists for bulbs
+	return {
+		brightness: Math.round( state.bri / .254 ) / 10,
+		saturation: Math.round( state.sat / .254 ) / 10,
+		hue: Math.round( state.hue / 18.203888889 ) / 10,
+		reachable: state.reachable
+	};
 }
 
 /**
@@ -182,11 +208,10 @@ function convertToHSB( hsl ) {
 	return HSB;
 }
 
-// TODO: check what hue does with out of bounds values OR just keep in range :)
 /**
- *
- * @param kelvin
- * @returns {number}
+ * Convert kelvins to mireds
+ * @param {number} kelvin
+ * @returns {number} mireds
  */
 function convertToMireds( kelvin ) {
 	var mireds = 1000000 / kelvin;
@@ -197,103 +222,122 @@ function addDuration( stateObj, duration ) {
 	if ( duration !== undefined ) stateObj.duration = duration;
 }
 
+function getLights() {
+	hueApi.lights().then( ( lightsObj ) => {
+		debug( 'lights', lightsObj );
+		lightsObj.lights.forEach( ( inst )=> {
+			hueApi.lightStatus( inst.id ).then( ( details )=> {
+				debug( details );
+				let deviceInfo = formatDeviceInfo( inst, details );
+				registerLight( deviceInfo );
 
-/* PUBLIC */
+				deviceInfo.state = standardizeState( details.state );
+				cachedState.push( deviceInfo );
 
-/**
- * Returns an array of known devices with id & label
- * @returns {Promise}
- */
-function getAllLights() {
-	// TODO: error handling when no network, devices not found
-	return api.lights().then( function( result ) {
-		var newObj = result.lights.map( function( obj ) {
-			return {
-				nativeId: obj.id,
-				label   : obj.name,
-				type    : 'light' // TODO: remove hardcoded platform
-			};
+				debug( 'cached state', deviceInfo );
+			} );
 		} );
-		return Promise.resolve( newObj );
-	} ).catch( function( err ) {
-		throw new Error( err );
 	} );
 }
 
-function getState( id ) {
-	return api.lightStatus( id );
+function registerLight( d ) {
+	const data = Object.assign( {}, d );
+	debug( 'registerLight', data );
+
+	emitter.emit( {
+		name: 'device found',
+		nativeId: data.id,
+		payload: data
+	} );
+}
+
+function formatDeviceInfo( d1, d2 ) {
+	return {
+		id: d1.id,
+		name: d1.name,
+		uniqueid: d2.uniqueid,
+		type: 'light',
+		modelid: d2.modelid,
+		manufacturername: d2.manufacturername,
+		swversion: d2.swversion
+	};
 }
 
 function setState( id, stateObj, duration ) {
 	addDuration( stateObj, duration );
-	return api.setLightState( id , stateObj );
+	return api.setLightState( id, stateObj );
 }
 
-function on( id, duration ) {
-	var stateObj = { on: true };
-	return setState( id, stateObj, duration );
-}
+/* PUBLIC */
+var api = {};
 
-function off( id, duration ) {
-	var stateObj = { on: false };
-	return setState( id, stateObj, duration );
-}
+/**
+ * Turns on light with specified id
+ *
+ * @param {Object} args
+ * @param {string} args.id  light's native id
+ * @param {Boolean} args.power  state to set
+ * @param {number} args.duration  duration of transition in ms
+ * @returns {Promise}
+ */
+api.setPower = function( args ) {
+	debug( 'setPower:', arguments );
+
+	var stateObj = { on: args.power };
+	return setState( args.id, stateObj, args.duration );
+};
 
 /**
  * Set color of lamp with specified id
- * @param {String} id
+ * @param {string} id
  * @param {Object} hsl - HSL color
- * @param {Number} hsl.h - hue ( 0 - 360 )
- * @param {Number} hsl.s - saturation ( 0 - 100 )
- * @param {Number} hsl.l - luminance ( 0 - 100 )
+ * @param {number} hsl.h - hue ( 0 - 360 )
+ * @param {number} hsl.s - saturation ( 0 - 100 )
+ * @param {number} hsl.l - luminance ( 0 - 100 )
  * @returns {Promise}
  */
-function setColor( id, hsl, duration ) {
-	var stateObj = convertToHSB( hsl );
-	return setState( id, stateObj, duration );
+api.setColor = function( args ) {
+	var stateObj = convertToHSB( args.hsl );
+	return setState( args.id, stateObj, args.duration );
 }
 
 /**
- *	Set a white color on the lamp with specified id
- *	Hue takes Mireds for white temperature ( = 1000000 / kelvin )
- * @param {String} id
- * @param {Number} kelvin - white temperature of lamp ( warm: 2500 - cool: 10000 )
- * @param {Number} brightness - brightness of lamp ( 0 - 100 )
+ * Set a white color on the lamp with specified id
+ * Hue takes Mireds for white temperature ( = 1000000 / kelvin )
+ * @param {string} id
+ * @param {number} kelvin - white temperature of lamp ( warm: 2500 - cool: 10000 )
+ * @param {number} brightness - brightness of lamp ( 0 - 100 )
  * @returns {Promise}
  */
-function setWhite( id, kelvin, brightness, duration ) {
+api.setWhite = function( args ) {
 	var stateObj = {
-		ct: convertToMireds( kelvin ),
-		bri: brightness * 2.54
+		ct: convertToMireds( args.kelvin ),
+		bri: args.brightness * 2.54
 	};
-	return setState( id, stateObj, duration );
+	return setState( args.id, stateObj, args.duration );
+};
+
+function ready() {
+	debug( 'ready' );
+
+	getLights().catch( console.log.bind( console ) );
+	// TODO: start monitoring state changes / polling
 }
 
 function init( globalSettings, platformSettings, em ) {
 	emitter = em;
-	api = new HueApi( platformSettings.host, platformSettings.user );
-	console.log( 'hue ready. host: ' + host );
+	hueApi = new HueApi( platformSettings.host, platformSettings.username );
+	debug( 'init', globalSettings, platformSettings );
+
+	ready();
 }
 
 module.exports = {
-	command: function( cmd ) {
-		var args = [].splice.call( arguments, 1 );
-		console.log( 'command', cmd, args );
-		api[ cmd ].apply( this, args );
+	command: function( cmd, args ) {
+		debug( 'received command', cmd, args );
+
+		return validatePlatformCommand( signature, cmd, args ).then( applyCommand );
 	},
 	init: init,
 	signature: signature
 };
-
-//module.exports = {
-//	// should return all known devices
-//	getDevices: getAllLights,
-//	getState  : getState,
-//	setColor  : setColor,
-//	setWhite  : setWhite,
-//	on        : on,
-//	off       : off,
-//	init      : init
-//};
-
-// getAllLights().then( console.log.bind(console) );
