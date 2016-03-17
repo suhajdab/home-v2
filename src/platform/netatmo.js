@@ -20,25 +20,25 @@ const signature = {
 			unit: 'Celsius'
 		},
 		co2: {
-			type: 'int',
+			type: 'number',
 			minimum: 200,
 			maximum: 4000,
 			unit: 'ppm'
 		},
 		humidity: {
-			type: 'int',
+			type: 'number',
 			minimum: 0,
 			maximum: 100,
 			unit: '%'
 		},
 		pressure: {
-			type: 'int',
+			type: 'number',
 			minimum: 960,
 			maximum: 1000,
 			unit: 'mbar'
 		},
 		noise: {
-			type: 'int',
+			type: 'number',
 			minimum: 0,
 			maximum: 100,
 			unit: 'db'

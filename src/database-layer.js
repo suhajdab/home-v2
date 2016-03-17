@@ -11,10 +11,12 @@ var settings = {
 	hardcoded_key = '_db_hardcoded_key',
 	connection, haveDB;
 
+// TODO: db query to find last entry with certain attributes: r.db('home').table('events').orderBy(r.desc('timeStamp')).filter({color:{brightness:92}}).limit(1)
+
 function connectDB( settings ) {
 	if ( connection ) return Promise.resolve( true );
-	else return new Promise( function( resolve, reject ) {
-		r.connect( settings, function( err, conn ) {
+	else return new Promise( ( resolve, reject ) => {
+		r.connect( settings, ( err, conn ) => {
 			if ( err ) reject( err );
 			else {
 				connection = conn;
@@ -26,8 +28,8 @@ function connectDB( settings ) {
 
 function selectDB() {
 	if ( haveDB ) return Promise.resolve( true );
-	else return new Promise( function( resolve, reject ) {
-		r.dbList().contains( settings.db ).run( connection, function( err, contains ) {
+	else return new Promise( ( resolve, reject ) => {
+		r.dbList().contains( settings.db ).run( connection, ( err, contains ) => {
 			debug( 'db ' + settings.db + ' exists: ', contains );
 			if ( err ) reject( err );
 			else {
@@ -36,7 +38,7 @@ function selectDB() {
 					resolve( true );
 				} else {
 					debug( 'creating db: ' + settings.db );
-					r.dbCreate( settings.db ).run( connection, function( err, res ) {
+					r.dbCreate( settings.db ).run( connection, ( err, res ) => {
 						if ( err ) reject( err );
 						else {
 							haveDB = true;
@@ -50,8 +52,8 @@ function selectDB() {
 }
 
 function setupTable( table, primaryKey ) {
-	return new Promise( function( resolve, reject ) {
-		r.tableList().contains( table ).run( connection, function( err, contains ) {
+	return new Promise( ( resolve, reject ) => {
+		r.tableList().contains( table ).run( connection, ( err, contains ) => {
 			debug( 'table ' + table + ' exists: ', contains );
 			if ( err ) reject( err );
 			else {
@@ -59,7 +61,9 @@ function setupTable( table, primaryKey ) {
 					resolve( true );
 				} else {
 					debug( 'creating table: ' + table );
-					r.tableCreate( table, { primaryKey: primaryKey || hardcoded_key } ).run( connection, function( err, res ) {
+					r.tableCreate( table, {
+						primaryKey: primaryKey || hardcoded_key
+					} ).run( connection, ( err, res ) => {
 						if ( err ) reject( err );
 						else {
 							resolve( true );
@@ -73,9 +77,9 @@ function setupTable( table, primaryKey ) {
 
 function insert( table, document ) {
 	var options = { conflict: 'update' };
-	return new Promise( function( resolve, reject ) {
+	return new Promise( ( resolve, reject ) => {
 		debug( 'inserting ', document, ' into ' + table );
-		r.table( table ).insert( document, options ).run( connection, function( err, result ) {
+		r.table( table ).insert( document, options ).run( connection, ( err, result ) => {
 			if ( err ) reject( err );
 			else resolve( result );
 		} );
@@ -83,9 +87,9 @@ function insert( table, document ) {
 }
 
 function select( table, key ) {
-	return new Promise( function( resolve, reject ) {
+	return new Promise( ( resolve, reject ) => {
 		debug( 'selecting ' + key + ' from ' + table );
-		r.table( table ).get( key ).run( connection, function( err, result ) {
+		r.table( table ).get( key ).run( connection, ( err, result ) => {
 			if ( err ) reject( err );
 			else resolve( result );
 		} );
@@ -96,53 +100,70 @@ function subscribe( table, callback ) {
 	r.table( table ).changes().run( connection, callback );
 }
 
+function addTableSpecificApis( tablePromise, table, api ) {
+	switch ( table ) {
+		case 'events':
+			api.getLastEventForProperty = ( property ) => {
+				return tablePromise.then( () => {
+					return new Promise( function( resolve, reject ) {
+						r.db( 'home' ).table( 'events' ).orderBy( r.desc( 'timeStamp' ) ).filter( property ).limit( 1 ).run( connection, ( err, result ) => {
+							if ( err ) reject( new Error( err ) );
+							else resolve( result );
+						} );
+					} );
+				} );
+			};
+	}
+	return api;
+}
+
 function factory( table, primaryKey ) {
 	var api = {},
 		haveTable;
 
-	function selectTable() {
+	function getTable() {
+		debug( 'getTable', 'table: ' + table, 'haveTable: ' + haveTable );
 		if ( haveTable ) return Promise.resolve( true );
 		else return setupTable( table, primaryKey )
-			.then( function() {
-				haveTable = true;
-			} );
+			.then( () => { haveTable = true; } );
+	}
+
+	function tablePromise() {
+		return connectDB( settings )
+			.then( selectDB )
+			.then( getTable );
 	}
 
 	if ( typeof table !== 'string' ) return;
 //	settings[ name ] = settings[ name ] || {};
 
 	api.get = function( key ) {
-		return connectDB( settings )
-			.then( selectDB )
-			.then( selectTable )
+		return tablePromise()
 			.then( select.bind( null, table, key ) );
 	};
 
 	api.set = function( key, doc ) {
+		debug( 'set', table, key, doc );
 		if ( typeof doc !== 'object' ) return Promise.reject( 'doc should be an object' );
 		doc[ hardcoded_key ] = key;
 
-		return connectDB( settings )
-			.then( selectDB )
-			.then( selectTable )
+		return tablePromise()
 			.then( insert.bind( null, table, doc ) );
 	};
 
 	api.insert = function( doc ) {
 		if ( typeof doc !== 'object' ) return Promise.reject( 'doc should be an object' );
 
-		return connectDB( settings )
-			.then( selectDB )
-			.then( selectTable )
+		return tablePromise()
 			.then( insert.bind( null, table, doc ) );
 	};
 
 	api.subscribe = function( callback ) {
-		return connectDB( settings )
-			.then( selectDB )
-			.then( selectTable )
+		return tablePromise()
 			.then( subscribe.bind( null, table, callback ) );
 	};
+
+	api = addTableSpecificApis( tablePromise(), table, api );
 
 	return api;
 }

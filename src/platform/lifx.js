@@ -148,6 +148,7 @@ deepFreeze( signature );
 
 // TODO: consider implementing single string colors via api, ex: purple
 // TODO: apis should allow for skipping properties to only adjust 1 aspect without touching others (ex: change hue, not sat & lum & power)
+// TODO: take advantage of light's ambient sensor?
 
 /* PRIVATE */
 
@@ -260,6 +261,7 @@ function findByNativeId( nativeId, deviceArray ) {
  * @param currentStates
  */
 // TODO: rewrite with [].reduce to return modified states, then handle that array
+// TODO: split out storing to another method in .then()
 function diffState( cachedStates, currentStates ) {
 	// TODO detect add/remove of devices
 	var i,
@@ -333,7 +335,7 @@ function execCommand( arr ) {
 	const cmd = arr[ 1 ];
 	const args = [].slice.call( arr, 2 );
 
-	debug( 'execCommand', light, cmd, args );
+	debug( 'execCommand', light.label, cmd, args );
 
 	return new Promise( function( resolve, reject ) {
 		light[ cmd ].apply( light, args, ( err ) => { if ( err ) reject( new Error( err ) ); else resolve( true ); } );
@@ -349,7 +351,7 @@ var api = {};
  * @param {Object} args
  * @param {string} args.id  light's native id
  * @param {Boolean} args.power  state to set
- * @param {number} args.duration  duration of transition in ms
+ * @param {number} [args.duration]  duration of transition in ms
  * @returns {Promise}
  */
 api.setPower = function( args ) {
@@ -364,9 +366,9 @@ api.setPower = function( args ) {
  *
  * @param {Object} args
  * @param {string} args.id
- * @param {number} args.h - hue ( 0 - 360 )
- * @param {number} args.s - saturation ( 0 - 100 )
- * @param {number} args.l - luminance ( 0 - 100 )
+ * @param {number} args.hue - hue ( 0 - 360 )
+ * @param {number} args.saturation - saturation ( 0 - 100 )
+ * @param {number} args.luminance - luminance ( 0 - 100 )
  * @param {number} args.duration
  */
 api.setHSL = function( args ) {
@@ -389,11 +391,15 @@ api.setWhite = function( args ) {
 	return getLightById( args.id, 'color', 0, 0, args.brightness, args.kelvin, args.duration ).then( execCommand );
 };
 
+function ready() {
+	pollStatus();
+}
+
 /**
  *
- * @param globalSettings
- * @param platformSettings
- * @param em
+ * @param {Object} globalSettings
+ * @param {Object} platformSettings
+ * @param {Object} em
  */
 function init( globalSettings, platformSettings, em ) {
 	emitter = em;
@@ -404,7 +410,7 @@ function init( globalSettings, platformSettings, em ) {
 //	} );
 //	client.on( 'light-online', function( light ) {
 //	} );
-	pollStatus();
+	ready();
 	debug( 'init', globalSettings, platformSettings );
 }
 

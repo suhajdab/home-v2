@@ -7,7 +7,12 @@ const debug = require( 'debug' )( 'hue' ),
 	hue = require( 'node-hue-api' ),
 	HueApi = hue.HueApi;
 
-var hueApi, emitter, cachedState = [];
+var hueApi,
+	emitter,
+	pollDelay = 500,
+	cachedState = [],
+	pollTimeout = 5000,
+	pollTimeoutId;
 
 const signature = {
 	commands: {
@@ -33,7 +38,7 @@ const signature = {
 		'setWhite': {
 			type: 'int',
 			minimum: 2500,
-			maximum: 10000,
+			maximum: 6500,
 			unit: 'kelvin'
 		},
 		'setHSL': {
@@ -263,9 +268,28 @@ function formatDeviceInfo( d1, d2 ) {
 	};
 }
 
+/**
+ * Apply new state to light, and adjust duration in ms to 0.1s units required by hue
+ * documentation: http://www.developers.meethue.com/documentation/lights-api#16_set_light_state
+ * @param {number} id
+ * @param {Object} stateObj
+ * @param {number} [duration] - ms
+ * @returns {Promise}
+ */
 function setState( id, stateObj, duration ) {
-	addDuration( stateObj, duration );
-	return api.setLightState( id, stateObj );
+	debug( 'setState', arguments );
+	if ( duration ) stateObj.transitiontime = duration / 100;
+	return hueApi.setLightState( id, stateObj );
+}
+
+/**
+ * Applies command with arguments
+ * @param {Object} args  command arguments
+ * @returns {Promise}
+ */
+function applyCommand( args ) {
+	debug( 'applyCommand', args );
+	return api[ args[ 0 ] ]( args[ 1 ] );
 }
 
 /* PUBLIC */
@@ -275,13 +299,13 @@ var api = {};
  * Turns on light with specified id
  *
  * @param {Object} args
- * @param {string} args.id  light's native id
+ * @param {number} args.id  light's native id
  * @param {Boolean} args.power  state to set
  * @param {number} args.duration  duration of transition in ms
  * @returns {Promise}
  */
 api.setPower = function( args ) {
-	debug( 'setPower:', arguments );
+	debug( 'setPower:', args );
 
 	var stateObj = { on: args.power };
 	return setState( args.id, stateObj, args.duration );
@@ -289,38 +313,45 @@ api.setPower = function( args ) {
 
 /**
  * Set color of lamp with specified id
- * @param {string} id
- * @param {Object} hsl - HSL color
- * @param {number} hsl.h - hue ( 0 - 360 )
- * @param {number} hsl.s - saturation ( 0 - 100 )
- * @param {number} hsl.l - luminance ( 0 - 100 )
+ * @param {number} args.id
+ * @param {number} args.hue ( 0 - 360 )
+ * @param {number} args.saturation ( 0 - 100 )
+ * @param {number} args.luminance  ( 0 - 100 )
+ * @param {number} [args.duration] - transition duration
  * @returns {Promise}
  */
 api.setColor = function( args ) {
-	var stateObj = convertToHSB( args.hsl );
+	debug( 'setColor:', args );
+	var stateObj = convertToHSB( { h: args.hue, s: args.saturation, l: args.luminance } );
+	// force on - hue rejects commands on power-off lights
+	stateObj.on = true;
 	return setState( args.id, stateObj, args.duration );
 }
 
 /**
  * Set a white color on the lamp with specified id
  * Hue takes Mireds for white temperature ( = 1000000 / kelvin )
- * @param {string} id
- * @param {number} kelvin - white temperature of lamp ( warm: 2500 - cool: 10000 )
- * @param {number} brightness - brightness of lamp ( 0 - 100 )
+ * @param {Object} args
+ * @param {number} args.id
+ * @param {number} args.kelvin - white temperature of lamp ( warm: 2500 - cool: 10000 )
+ * @param {number} args.brightness - brightness of lamp ( 0 - 100 )
+ * @param {number} [args.duration] - transition duration
  * @returns {Promise}
  */
 api.setWhite = function( args ) {
+	debug( 'setWhite:', args );
 	var stateObj = {
 		ct: convertToMireds( args.kelvin ),
 		bri: args.brightness * 2.54
 	};
+	// force on - hue rejects commands on power-off lights
+	stateObj.on = true;
 	return setState( args.id, stateObj, args.duration );
 };
 
 function ready() {
 	debug( 'ready' );
 
-	getLights().catch( console.log.bind( console ) );
 	// TODO: start monitoring state changes / polling
 }
 

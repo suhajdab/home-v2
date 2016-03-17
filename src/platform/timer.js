@@ -1,15 +1,26 @@
-/**
- * timer
- */
+'use strict';
 
-require( 'es6-promise' ).polyfill();
-var CronJob = require( 'cron' ).CronJob,
+var debug = require( 'debug' )( 'timer' ),
+	CronJob = require( 'cron' ).CronJob,
 	uuid = require( 'node-uuid' ),
-	db = require( './database-layer.js' )( 'timers' );
+	deepFreeze = require( 'deep-freeze' ),
+	db = require( './../database-layer.js' )( 'devices' );
 
-var timers;
+var timers,
+	emitter,
+	signature = {
+		events: {
+			//tick
+		},
+		commands: {
+			//starttimer
+			//enable/disable timer
+		}
+	};
 
-//TODO: finish db conversion
+deepFreeze( signature );
+
+// TODO: finish db conversion
 
 /*
  Using cronTime to define timers
@@ -56,7 +67,7 @@ function filterObject( obj, keys ) {
  * @param {Array} timers - Array of timer objects
  * @returns {Array}
  */
-function filterBeforeSave( timers ) {
+function sanitizeTimers( timers ) {
 	var keys = [ 'label', 'cronTime', 'repeat', 'active', 'id' ];
 	return timers.map( function( timer ) {
 		return filterObject( timer, keys );
@@ -65,22 +76,26 @@ function filterBeforeSave( timers ) {
 
 function triggerTimer() {
 	console.log( 'timer triggered', this );
-	events.create( 'event', {
+	// TODO: standard event format
+	emitter.emit( 'event', {
 		id: this.id,
 		name: this.name,
 		title: this.name + ' triggered',
 		source: 'timer'
-	} ).priority( 'high' ).attempts( 5 ).save();
+	} );
 
 	if ( !this.repeat ) disable( this );
 }
 
 function save() {
+	let sanitizedTimers = sanitizeTimers( timers );
+	debug( 'save', sanitizedTimers );
 	// TODO: error logging
-	return db.set( 'timers', filterBeforeSave( timers ) ).catch( console.error.bind( console ) );
+	return db.set( 'timers', { array: sanitizedTimers } ).catch( console.error.bind( console ) );
 }
 
 function create( timer ) {
+	debug( 'create', timer );
 	timer.id = uuid.v4();
 	timers.push( timer );
 	setup( timer );
@@ -89,11 +104,13 @@ function create( timer ) {
 }
 
 function setup( timer ) {
+	debug( 'setup', timer );
 	if ( !timer.enabled ) return;
 	enable( timer );
 }
 
 function enable( timer ) {
+	debug( 'enable', timer );
 	timer.enabled = true;
 	timer.cron = new CronJob( {
 		cronTime: timer.cronTime,
@@ -110,23 +127,22 @@ function disable( timer ) {
 }
 
 function ready( timerData ) {
-	console.log( 'timers ready. loaded ' + timerData.length + ' timers.' );
-	timers = timerData || [];
+	debug( 'ready', timerData );
+	timers = timerData && timerData.array || [];
 	timers.forEach( setup );
 
-	/*
-	 create( {
-	 label: "Hubby's weekday alarm",
-	 //	cronTime: "00 30 06 *  * 1-5",
-	 cronTime: "00 48 08 *  * *",
-	 repeat: true,
-	 enabled: true
-	 } );
-	 */
-
+//	create( {
+//		label: "Hubby's weekday alarm",
+//		//	cronTime: "00 30 06 *  * 1-5",
+//		cronTime: "00 48 08 *  * *",
+//		repeat: true,
+//		enabled: true
+//	} );
 }
 
-function init() {
+function init( globalSettings, platformSettings, em ) {
+	debug( 'init', arguments );
+	emitter = em;
 	db.get( 'timers' ).then( ready );
 }
 

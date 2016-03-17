@@ -2,7 +2,7 @@
 
 var debug = require( 'debug' )( 'netatmo' );
 var deepFreeze = require('deep-freeze');
-var nativeId = 'verisure-madeup-id',
+var nativeId = 'verisure-madeup-id', // unlikely anyone would have 2 verisure alarms in the same system
 	verisureApi, emitter;
 
 const signature = {
@@ -32,7 +32,7 @@ function onAlarmChange( data ) {
 	debug( 'onAlarmChange', data );
 	emitter.emit( {
 		name: 'change',
-		nativeId: 'made-up-id',
+		nativeId: nativeId,
 		payload: {
 			eventType: 'alarmChange',
 			status: data.status
@@ -45,7 +45,7 @@ function ready() {
 
 	emitter.emit( {
 		name: 'device found',
-		nativeId: 'made-up-id',
+		nativeId: nativeId,
 		payload: {
 			type: 'alarm',
 			tag: [ 'zone:indoor' ]
